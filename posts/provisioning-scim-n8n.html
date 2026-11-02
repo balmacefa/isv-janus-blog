@@ -16,6 +16,9 @@ th{background:#159957;color:#fff}
 <body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
 <h1>Provisioning SCIM con n8n</h1>
 <p><img alt="Wizard API client en IBM Verify" src="../assets/janus-apiclient-wizard.png?v=181153"></p>
+<p><img alt="Workflows ISV en n8n" src="../assets/shot-n8n-workflows.png?v=104461"></p>
+<p><img alt="Workflow de provisioning en n8n" src="../assets/shot-n8n-provisioning.png?v=59383"></p>
+<p><img alt="Usuarios en WordPress" src="../assets/shot-wp-users.png?v=100482"></p>
 <h2>Para humanos</h2>
 <p>Alta automática de usuarios y grupos en IBM Verify desde n8n, usando SCIM 2.0.</p>
 <ol><li>En Verify: <strong>Security › API access</strong> → crear API client con entitlements <strong>Manage all users</strong>, <strong>Manage all groups</strong> y <strong>Manage all groups and their members</strong> (<code>manageGroupMembers</code>).</li><li>Copiar <code>client_id</code> + <code>client_secret</code> (el secret se muestra 1 sola vez).</li><li>En n8n: credencial <strong>"IBM Verify - Client Credentials (SCIM)"</strong> (<code>&lt;credential-id&gt;</code>) → pegar <code>{"body":{"client_id":"…","client_secret":"…"}}</code>.</li><li>Ejecutar el workflow <strong><code>&lt;workflow-id&gt;</code></strong> ("Verify: provisionar datos"). ✅ Operativo.</li></ol>
