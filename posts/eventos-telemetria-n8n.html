@@ -16,41 +16,115 @@ th{background:#159957;color:#fff}
 </style></head>
 <body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
 <h1>Generar eventos de telemetría E2E al sink n8n</h1>
-<p><img alt="Ejecuciones del workflow "ISV events sink" en n8n" src="../assets/n8n-executions.png?v=327383"></p>
-<h3>Eventos llegando en vivo</h3>
-<video controls loop muted playsinline preload="metadata"><source src="../assets/n8n-live.mp4?v=154212" type="video/mp4">Tu navegador no soporta video.</video>
-<p>*Las ejecuciones entran en tiempo real a medida que el generador dispara POSTs al webhook (modo <code>webhook</code>, auto-refresh). Cada tarjeta <code>Succeeded</code> = un evento persistido.*</p>
-<p><img alt="Canvas del workflow en el editor de n8n" src="../assets/n8n-workflow-editor.png?v=135258"></p>
-<p><img alt="Payload capturado por el nodo Capture payload" src="../assets/n8n-event-payload.png?v=40810"></p>
-<h2>Para humanos</h2>
 <p>Un lab de identidad se ve pobre con el historial vacío. Para que los dashboards y los</p>
 <p>workflows de respuesta tengan de qué alimentarse, montamos un **generador de eventos</p>
 <p>E2E** que no inventa datos: autentica contra el tenant real de IBM Verify, extrae</p>
 <p><strong>usuarios y grupos reales</strong> vía SCIM y dispara eventos de telemetría (login, MFA,</p>
 <p>SCIM, sesión, riesgo, governance) a un <strong>webhook de n8n</strong> que los persiste.</p>
-<p><strong>El flujo de punta a punta:</strong></p>
-<ol><li><strong>Token OAuth2</strong> — <code>POST /v1.0/endpoint/default/token</code> con <code>grant_type=client_credentials</code></li></ol>
-<p>   usando el API client del tenant (<code>client_id</code> + <code>client_secret</code>). El secret nunca se</p>
-<p>   imprime: se inyecta como variable de entorno desde el gestor de secretos.</p>
-<ol><li><strong>Identidades reales</strong> — <code>GET /v2.0/Users?count=200</code> y <code>GET /v2.0/Groups?count=50</code></li></ol>
-<p>   (SCIM 2.0). El tenant devuelve ~140 usuarios y 20 grupos reales: de ahí salen</p>
-<p>   <code>userName</code>, <code>displayName</code>, <code>email</code> e <code>id</code> SCIM de cada evento.</p>
-<ol><li><strong>Síntesis del evento</strong> — por cada iteración se arma un payload con forma de telemetría</li></ol>
-<p>   SOC/IAM: <code>event_type</code> (p.ej. <code>sso.login.success</code>, <code>mfa.verify.success</code>,</p>
-<p>   <code>fido2.authenticate</code>, <code>scim.group.member.added</code>, <code>risk.score.evaluated</code>,</p>
-<p>   <code>access.cert.reviewed</code>), <code>subject{}</code> con la identidad <strong>real</strong>, <code>application</code>,</p>
-<p>   <code>mfa_method</code>, <code>risk_level/score</code>, <code>ip</code>, <code>geo</code> y <code>occurred_at</code>.</p>
-<ol><li><strong>Ingesta en n8n</strong> — <code>POST</code> al webhook <code>https://n8n.example.com/webhook/isv-events</code>.</li></ol>
-<p>   Cada <code>200</code> dispara una ejecución del workflow <strong>ISV events sink</strong>:</p>
-<p>   <code>Webhook ISV → Capture payload → Save to isv_events</code> (ver captura).</p>
-<p><strong>Correrlo</strong> (100 eventos, secret inyectado, sin exponer el valor):</p>
-<pre><code>cd pike-web/janus
-export PATH="/c/Program Files/nodejs:$PATH"
-CID=&lt;api-client-id&gt; CSEC=&lt;api-client-secret&gt; node.exe isv-event-gen.mjs 100</code></pre>
-<p><strong>Verificarlo</strong> — en la UI de n8n, <code>/workflow/&lt;workflow-id&gt;/executions</code>: la columna</p>
-<p>muestra todas las ejecuciones <strong>Succeeded</strong> en modo <code>webhook</code>. En esta corrida: **303</p>
-<p>ejecuciones, 100% success**. Cada una guarda el <code>$json.body</code> real capturado por el nodo</p>
-<p>*Capture payload*.</p>
+<p><img alt="Ejecuciones del workflow "ISV events sink" en n8n" src="../assets/n8n-executions.png?v=327383"></p>
+<h3>Eventos llegando en vivo</h3>
+<video controls loop muted playsinline preload="metadata"><source src="../assets/n8n-live.mp4?v=154212" type="video/mp4">Tu navegador no soporta video.</video>
+<p>*Las ejecuciones entran en tiempo real a medida que el generador dispara POSTs al webhook (modo <code>webhook</code>, auto-refresh). Cada tarjeta <code>Succeeded</code> = un evento persistido.*</p>
+<h2>Cómo se generan (terminal)</h2>
+<p>Un único comando: <code>secret_run</code> inyecta el <code>client_id</code>/<code>client_secret</code> como variables de</p>
+<p>entorno (el valor <strong>nunca</strong> aparece en el transcript) y corre el generador. Bajo el capó</p>
+<p>hace el token OAuth2, el pull SCIM de identidades reales y los 100 POST al webhook.</p>
+<p><img alt="Sesión de terminal: generar eventos desde la API del tenant" src="../assets/n8n-terminal.png?v=47607"></p>
+<h2>Reproducir el lab (paso a paso)</h2>
+<p><strong>Prerrequisitos:</strong> Node 18+, un tenant IBM Verify y una instancia n8n con un webhook.</p>
+<ol><li><strong>API client en Verify</strong> — *Security › API access* → crear un API client con</li></ol>
+<p>   entitlements <strong>Manage all users</strong> + <strong>Manage all groups</strong>. Copiar <code>client_id</code> y</p>
+<p>   <code>client_secret</code> (el secret se muestra 1 sola vez).</p>
+<ol><li><strong>Webhook en n8n</strong> — workflow con nodo *Webhook* (<code>POST</code>, path <code>isv-events</code>) → *Set*</li></ol>
+<p>   (captura <code>headers</code>/<code>body</code>) → *Data table* (o el sink que prefieras). Activarlo.</p>
+<ol><li><strong>Guardar los secretos</strong> (fuera del código). Con el gestor local:</li></ol>
+<p>   ```</p>
+<p>   secret_set api-client-id      <client_id></p>
+<p>   secret_set api-client-secret  <client_secret></p>
+<p>   ```</p>
+<ol><li><strong>Correr el generador</strong> (100 eventos; el secret se inyecta como env):</li></ol>
+<p>   ```</p>
+<p>   cd pike-web/janus</p>
+<p>   export PATH="/c/Program Files/nodejs:$PATH"</p>
+<p>   secret_run inject {CID:api-client-id, CSEC:api-client-secret} node isv-event-gen.mjs 100</p>
+<p>   ```</p>
+<p>   Salida esperada: <code>real tenant: 140 users, 20 groups</code> → <code>DONE sent=100 fail=0</code>.</p>
+<ol><li><strong>Verificar</strong> — en n8n, <code>/workflow/&lt;workflow-id&gt;/executions</code>: todas en modo <code>webhook</code>,</li></ol>
+<p>   estado <code>Succeeded</code>. O por API: <code>GET /executions?workflowId=&lt;id&gt;</code>.</p>
+<h2>El script completo (<code>isv-event-gen.mjs</code>)</h2>
+<p>Copiá este archivo a <code>pike-web/janus/</code>. Autocontenido, sin dependencias (usa <code>fetch</code> nativo).</p>
+<pre><code>// E2E ISV event generator: pulls REAL users+groups from the IBM Verify tenant
+// (OAuth2 client_credentials) and emits lifecycle/SSO events referencing those
+// real identities to the n8n webhook.
+const T = "https://tenant.verify.ibm.com";
+const WEBHOOK = "https://n8n.example.com/webhook/isv-events";
+const N = Number(process.argv[2] || 100);
+const id = process.env.CID, sec = process.env.CSEC;
+
+// 1) token OAuth2 (client_credentials)
+const tr = await fetch(`${T}/v1.0/endpoint/default/token`, {
+  method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({ grant_type: "client_credentials", client_id: id, client_secret: sec })
+});
+const { access_token: A } = await tr.json();
+if (!A) { console.log("no token"); process.exit(1); }
+const H = a =&gt; ({ authorization: "Bearer " + A, accept: a || "application/json" });
+
+// 2) identidades REALES del tenant (SCIM 2.0)
+const ur = await fetch(`${T}/v2.0/Users?count=200&amp;attributes=userName,emails,name,displayName`, { headers: H("application/scim+json") });
+const users = (await ur.json()).Resources || [];
+const gr = await fetch(`${T}/v2.0/Groups?count=50&amp;attributes=displayName`, { headers: H("application/scim+json") });
+const groups = ((await gr.json()).Resources || []).map(g =&gt; g.displayName);
+console.log(`real tenant: ${users.length} users, ${groups.length} groups`);
+
+const APPS = ["WordPress (OIDC)", "n8n", "Salesforce (SAML)", "Slack", "GitHub Enterprise", "Jira"];
+const EVENTS = [
+  ["authentication", "sso.login.success"], ["authentication", "sso.login.success"],
+  ["authentication", "sso.login.failed"], ["mfa", "mfa.challenge.issued"],
+  ["mfa", "mfa.verify.success"], ["mfa", "fido2.authenticate"],
+  ["provisioning", "scim.user.updated"], ["provisioning", "scim.group.member.added"],
+  ["session", "session.created"], ["session", "session.revoked"],
+  ["password", "password.changed"], ["risk", "risk.score.evaluated"],
+  ["governance", "access.cert.reviewed"], ["authentication", "sso.logout"]
+];
+const rnd = a =&gt; a[Math.floor(Math.random() * a.length)];
+const ip = () =&gt; `${rnd([190,201,181,200])}.${(Math.random()*255)|0}.${(Math.random()*255)|0}.${(Math.random()*255)|0}`;
+const geos = ["San Jose, CR", "Miami, US", "Madrid, ES", "Bogota, CO", "Sao Paulo, BR"];
+
+// 3) por cada iteracion: identidad real + evento sintetizado -&gt; POST al webhook
+let ok = 0, fail = 0;
+for (let i = 0; i &lt; N; i++) {
+  const u = rnd(users);
+  const email = (u.emails &amp;&amp; u.emails[0] &amp;&amp; u.emails[0].value) || `${u.userName}@acme.example.com`;
+  const [cat, type] = rnd(EVENTS);
+  const risk = rnd(["low", "low", "low", "medium", "high"]);
+  const ev = {
+    source: "ibm-verify", tenant: "tenant.verify.ibm.com",
+    event_category: cat, event_type: type,
+    subject: { id: u.id, userName: u.userName, displayName: u.displayName || u.userName, email },
+    group: rnd(groups), application: rnd(APPS),
+    result: type.includes("failed") ? "failure" : "success",
+    mfa_method: rnd(["fido2", "totp", "verify-push", "email-otp", "none"]),
+    risk_level: risk,
+    risk_score: risk === "high" ? 70 + ((Math.random()*30)|0) : risk === "medium" ? 40 + ((Math.random()*25)|0) : (Math.random()*30)|0,
+    ip: ip(), geo: rnd(geos), user_agent: "Mozilla/5.0 (demo lab)",
+    seq: i, occurred_at: new Date(Date.now() - ((Math.random()*7*864e5)|0)).toISOString()
+  };
+  try {
+    const r = await fetch(WEBHOOK, { method: "POST", headers: { "content-type": "application/json", "x-isv-source": "tenant-e2e" }, body: JSON.stringify(ev) });
+    r.ok ? ok++ : (fail++, fail &lt;= 3 &amp;&amp; console.log("HTTP", r.status, await r.text()));
+  } catch (e) { fail++; fail &lt;= 3 &amp;&amp; console.log("ERR", e.message); }
+}
+console.log(`DONE sent=${ok} fail=${fail} (events built from REAL tenant identities)`);</code></pre>
+<h2>Evidencias</h2>
+<ul><li><strong>El workflow en el editor</strong> — <code>Webhook ISV → Capture payload → Save to isv_events</code>:</li></ul>
+<p>  <img alt="Canvas del workflow en el editor de n8n" src="../assets/n8n-workflow-editor.png?v=135258"></p>
+<ul><li><strong>Un evento tal como queda capturado</strong> por el nodo *Capture payload* (identidad real</li></ul>
+<p>  del tenant + telemetría; datos de demo):</p>
+<p>  <img alt="Payload capturado" src="../assets/n8n-event-payload.png?v=40810"></p>
+<ul><li><strong>Conteo acumulado:</strong> <strong>633 ejecuciones, 100% <code>success</code></strong>, todas en modo <code>webhook</code></li></ul>
+<p>  (verificado vía API de n8n). Cada corrida de <code>node isv-event-gen.mjs 100</code> añade 100.</p>
+<h2>Para humanos</h2>
 <p><strong>Por qué "E2E real":</strong> el que las identidades salgan del tenant vivo (no de una lista</p>
 <p>hardcodeada) hace que los labs sean creíbles — los mismos usuarios que ves en Verify</p>
 <p>aparecen en el historial de eventos. El único trozo sintético es el <strong>tipo</strong> de evento,</p>
@@ -60,13 +134,13 @@ CID=&lt;api-client-id&gt; CSEC=&lt;api-client-secret&gt; node.exe isv-event-gen.
 <h2>Operación (IA / PACT)</h2>
 <pre><code>i#event-gen-e2e#verify-&gt;n8n=telemetry"state=OPERATIVO ^D ?9
  d2&lt;janus&gt;n8n~webhook
- src: isv-event-gen.mjs [N=100]
- auth: POST /v1.0/endpoint/default/token grant=client_credentials  # creds pwmgr: api-client-id+secret, env-injected
+ src: isv-event-gen.mjs [N=100]  # autocontenido, fetch nativo, sin deps
+ auth: POST /v1.0/endpoint/default/token grant=client_credentials  # creds pwmgr: api-client-id+secret, env-injected via secret_run
  pull:[ GET /v2.0/Users?count=200 | GET /v2.0/Groups?count=50 ]     # ct=scim+json ; ~140 users / 20 groups REALES
  build: event{event_type,subject{id,userName,displayName,email},application,mfa_method,risk_level,ip,geo,occurred_at}
  sink: POST https://n8n.example.com/webhook/isv-events     # path=isv-events
  wf: &lt;workflow-id&gt; "ISV events sink" = Webhook ISV-&gt;Capture payload-&gt;Save to isv_events
- proof: 303 executions / 100% success / mode=webhook
+ proof: 633 executions / 100% success / mode=webhook
  gap: GET /v1.0/events=403 (API client sin scope reports) -&gt; event_type sintetico, identidades reales
  verify: mcp n8n executions{action:list,workflowId} -&gt; data.executions[] ; action:get mode:full -&gt; payload</code></pre>
 <div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>
