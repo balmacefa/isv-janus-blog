@@ -28,6 +28,19 @@ th{background:#159957;color:#fff}
 <video controls loop muted playsinline preload="metadata"><source src="../assets/otav-live.mp4?v=45225" type="video/mp4">Tu navegador no soporta video.</video>
 <p>*Click "Borrar" → se acuña un nonce single-use → passkey assertion → nonce consumido →</p>
 <p>asset borrado <strong>una sola vez</strong> → un replay con el mismo token queda <strong>denegado</strong>.*</p>
+<h2>Ahora en vivo dentro de n8n (no es un mock)</h2>
+<p>El demo ya no corre en localhost: la <strong>UI la sirve el propio n8n</strong> y los webhooks</p>
+<p>(<code>/otav-mint</code>, <code>/otav-callback</code>) son reales. El backend es un workflow n8n con el nonce</p>
+<p>persistido en una <strong>Data Table</strong>, el enforce de un-solo-uso + TTL, y el **gate de riesgo</p>
+<p>con Jev** corriendo dentro de n8n.</p>
+<p><img alt="UI servida por n8n" src="../assets/otav-n8n-hero.png?v=31047"></p>
+<p><strong>El step-up OIDC es un round-trip REAL contra IBM Verify.</strong> Al pulsar "Borrar", el</p>
+<p>navegador se redirige de verdad al tenant con <code>prompt=login</code> y **Verify exige</p>
+<p>re-autenticarse** antes de dejar continuar. Esta es la pantalla real que aparece:</p>
+<p><img alt="Re-autenticacion real exigida por IBM Verify" src="../assets/otav-oidc-stepup.png?v=14668"></p>
+<p>Solo tras firmar en Verify, el tenant redirige al webhook <code>/otav-callback</code> con el <code>code</code></p>
+<p>y el <code>state=nonce</code>, n8n consume el nonce (una sola vez) y la accion procede. Esa pantalla</p>
+<p>*es* la validacion extra: el humano re-verifica en el instante de la accion destructiva.</p>
 <h2>El problema</h2>
 <p>Una cuenta comprometida, un insider, o un simple clic accidental: con una sesión abierta,</p>
 <p>las acciones destructivas (borrar, transferir, cambiar permisos) se ejecutan sin fricción.</p>
@@ -64,10 +77,17 @@ th{background:#159957;color:#fff}
 <table><thead><tr><th>Asset</th><th>Jev <code>¿requiere step-up?</code></th><th><code>riesgo</code></th><th>Resultado</th></tr></thead><tbody><tr><td><code>Q4-report.pdf</code> (reporte financiero, producción, 1.2k descargas)</td><td><strong>0.96</strong></td><td><strong>0.99</strong></td><td>step-up obligatorio</td></tr><tr><td><code>borrador-temp.png</code> (sandbox, 0 descargas)</td><td><strong>0.07</strong></td><td><strong>0.01</strong></td><td>pasa silencioso</td></tr></tbody></table>
 <p>El operador solo es interrumpido cuando de verdad importa. (Mismo motor de riesgo que el</p>
 <p>caso *SoD Guardian* — se reusa.)</p>
+<p><strong>Corre dentro de n8n:</strong> el gate es un nodo HTTP del workflow que llama a</p>
+<p><code>api.typesafe.ai/v1/systemone</code>; cada <code>mint</code> devuelve <code>needsStepup</code> + <code>riesgo</code> juzgados por</p>
+<p>Jev en produccion (la key vive en una credencial n8n, nunca en el codigo).</p>
 <h2>Reproducir el lab</h2>
 <p>Demo autocontenida, <strong>sin dependencias</strong> (<code>fetch</code>/<code>http</code> nativos). Levanta el servidor y</p>
 <p>abrí la página:</p>
-<pre><code>node otav-demo.mjs        # http://localhost:7799</code></pre>
+<pre><code># en vivo, UI servida por n8n (backend real):
+https://n8n.example.com/webhook/otav-ui
+
+# o local autocontenido (sin deps):
+node otav-demo.mjs        # http://localhost:7799</code></pre>
 <ol><li>Elegí el mecanismo (OIDC / FIDO2 / Push) y pulsá <strong>Borrar asset</strong>.</li><li>Observá: nonce acuñado → validación → asset borrado → <strong>replay denegado</strong>.</li><li>El nonce es single-use y caduca a los 60s (<code>/consume</code> rechaza <code>ya-usado</code>/<code>expirado</code>).</li></ol>
 <p>> <strong>Nota de captura:</strong> FIDO2 se automatiza con un *virtual authenticator* vía CDP</p>
 <p>> (<code>WebAuthn.addVirtualAuthenticator</code>) para que la passkey complete sin Touch ID real —</p>
