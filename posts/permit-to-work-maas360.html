@@ -24,10 +24,13 @@ th{background:#159957;color:#fff}
 <p>construimos (gate de riesgo con IA + step-up IBM Verify + token de un solo uso).</p>
 <p><img alt="Permit-to-Work — vista MaaS360 con el audit trail" src="../assets/pwt-demo.png?v=39275"></p>
 <h3>El flujo completo en video</h3>
-<video controls loop muted playsinline preload="metadata"><source src="../assets/pwt-demo.mp4?v=389671" type="video/mp4">Tu navegador no soporta video.</video>
+<video controls loop muted playsinline preload="metadata"><source src="../assets/pwt-demo.mp4?v=778792" type="video/mp4">Tu navegador no soporta video.</video>
 <p>*Un solo operador simula los 4 roles con el selector "Simular rol": Operador solicita →</p>
 <p>Jev evalúa el riesgo → Sala de control aprueba (1/2) → HSE aprueba (2/2) → se ejecuta</p>
-<p>single-use → el Auditor ve la traza.*</p>
+<p>single-use → el Auditor ve la traza y <strong>carga el registro desde n8n</strong>. Fijate en las dos</p>
+<p>aprobaciones: cada una tarda unos segundos — es un <strong>step-up FIDO2 real contra IBM Verify</strong>,</p>
+<p>no un stub — y en el panel inferior cada evento aparece persistido con su **id de aserción</p>
+<p>verificado por IBM Verify**.*</p>
 <h2>El caso (Oil & Gas)</h2>
 <p>Un <strong>Compresor C-401</strong> en zona ATEX, operado desde una **tablet rugged gestionada por</p>
 <p>MaaS360** (enrolada, *compliant*). El operador necesita <strong>arrancar</strong> el equipo — una acción</p>
@@ -43,6 +46,23 @@ th{background:#159957;color:#fff}
 <ul><li><strong>Jev</strong> decide si la acción amerita <strong>doble</strong> aprobación (no molestar en lo trivial).</li><li><strong>IBM Verify</strong> da el <strong>step-up</strong> que re-verifica a cada aprobador en el momento.</li><li>El <strong>token single-use + TTL</strong> y el <strong>audit trail</strong> cierran el loop de gobernanza — el</li></ul>
 <p>  mismo motor del <a href="one-time-action-validator.html">One-Time Action Validator</a>.</p>
 <ul><li><strong>IBM Carbon</strong> da el look enterprise auténtico (UI Shell, Data Table, Tags, botones).</li></ul>
+<h2>¿Dónde queda auditado? (n8n + IBM Verify)</h2>
+<p>La pregunta correcta de todo demo de gobernanza: *¿esto queda registrado en algún lado, o es</p>
+<p>teatro?* Acá se registra en <strong>dos capas reales</strong>:</p>
+<p><strong>1. n8n — Data Table <code>pwt_audit</code> (vía webhook).</strong> Cada paso del permiso dispara un</p>
+<p><code>POST /webhook/pwt-event</code> que <strong>persiste una fila</strong> en una Data Table de n8n: <code>SOLICITADO</code>,</p>
+<p><code>APROBADO 1/2</code>, <code>APROBADO 2/2</code>, <code>EJECUTADO</code> — con hora, permiso, actor y rol. El panel</p>
+<p>*"Registro en n8n"* del demo los trae con <code>GET /webhook/pwt-audit</code>; no es estado del</p>
+<p>navegador, es la tabla del servidor.</p>
+<p><strong>2. IBM Verify — aserción FIDO2 real.</strong> Cada aprobación ejecuta un **step-up FIDO2</p>
+<p>verificado server-side por IBM Verify** (el mismo motor del OTAV: passkey de software que</p>
+<p>firma el *challenge* y Verify valida la aserción, <code>verifiedByVerify: true</code>). Verify devuelve</p>
+<p>un <strong>id de aserción</strong> que guardamos en la columna <code>Verify</code> del evento — ese id es la</p>
+<p><strong>referencia auditable</strong> que liga el evento de negocio (n8n) con la autenticación real del</p>
+<p>tenant. Cada aserción queda además en la <strong>actividad del tenant</strong> (Reports → User activity).</p>
+<p>> En síntesis: el <strong>qué/quién/cuándo</strong> vive en n8n; el <strong>"y se re-verificó a la persona"</strong></p>
+<p>> lo respalda IBM Verify con una aserción FIDO2 real y su id. Dos sistemas, una traza que</p>
+<p>> cierra.</p>
 <h2>Probarlo</h2>
 <p><strong><a href="https://n8n-public.balmacefa.com/webhook/pwt-ui">Abrir el demo Permit-to-Work &rarr;</a></strong> — usá el selector <strong>"Simular rol"</strong></p>
 <p>arriba a la derecha para recorrer los 4 roles: como Operador pulsá *Solicitar*, cambiá a</p>
@@ -54,5 +74,8 @@ th{background:#159957;color:#fff}
  flow: request -&gt; Jev(risk% -&gt; doble aprobacion) -&gt; control aprueba 1/2 -&gt; HSE aprueba 2/2 -&gt; execute single-use -&gt; audit
  roles:[operador(solicita), control(aprob 1/2), hse(aprob 2/2), auditor(read-only)]
  stepup: IBM Verify por aprobador ; token: single-use+TTL ; trail: quien/que/cuando
- reuse: motor OTAV (nonce+Jev+Verify+audit) ; UI: IBM Carbon ; vista: MaaS360 app</code></pre>
+ reuse: motor OTAV (nonce+Jev+Verify+audit) ; UI: IBM Carbon ; vista: MaaS360 app
+ audit:
+  n8n: POST /pwt-event -&gt; DataTable pwt_audit {ts,permitId,event,actor,role,risk,verify} ; GET /pwt-audit
+  verify: approve -&gt; FIDO2 assert REAL (verifiedByVerify:true) -&gt; assertionId guardado en evento ; trazable en tenant activity</code></pre>
 <div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>
