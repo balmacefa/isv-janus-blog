@@ -8,6 +8,7 @@ code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
 pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
 pre code{background:none;padding:0}
 img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
+video{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0;display:block}
 table{border-collapse:collapse;width:100%;margin:1em 0}
 th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
 th{background:#159957;color:#fff}
@@ -16,6 +17,11 @@ th{background:#159957;color:#fff}
 <body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
 <h1>Generar eventos de telemetría E2E al sink n8n</h1>
 <p><img alt="Ejecuciones del workflow "ISV events sink" en n8n" src="../assets/n8n-executions.png?v=327383"></p>
+<h3>Eventos llegando en vivo</h3>
+<video controls loop muted playsinline preload="metadata"><source src="../assets/n8n-live.mp4?v=154212" type="video/mp4">Tu navegador no soporta video.</video>
+<p>*Las ejecuciones entran en tiempo real a medida que el generador dispara POSTs al webhook (modo <code>webhook</code>, auto-refresh). Cada tarjeta <code>Succeeded</code> = un evento persistido.*</p>
+<p><img alt="Canvas del workflow en el editor de n8n" src="../assets/n8n-workflow-editor.png?v=135258"></p>
+<p><img alt="Payload capturado por el nodo Capture payload" src="../assets/n8n-event-payload.png?v=40810"></p>
 <h2>Para humanos</h2>
 <p>Un lab de identidad se ve pobre con el historial vacío. Para que los dashboards y los</p>
 <p>workflows de respuesta tengan de qué alimentarse, montamos un **generador de eventos</p>
