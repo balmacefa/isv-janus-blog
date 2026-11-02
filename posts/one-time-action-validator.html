@@ -83,9 +83,15 @@ th{background:#159957;color:#fff}
 <p>Jev en produccion (la key vive en una credencial n8n, nunca en el codigo).</p>
 <p><strong>Auditoria:</strong> cada validacion se registra en una Data Table <code>otav_audit</code> (timestamp, nonce,</p>
 <p>assetId, resultado, mecanismo) — evidencia exportable de quien aprobo que y cuando.</p>
-<h2>Roadmap a produccion</h2>
-<p>Lo que ya esta live y lo que queda para endurecerlo:</p>
-<ul><li>✅ <strong>Backend real en n8n</strong> (webhooks, nonce en Data Table, single-use + TTL).</li><li>✅ <strong>Round-trip OIDC real</strong> a IBM Verify (<code>prompt=login</code>, re-auth exigida).</li><li>✅ <strong>Gate de riesgo Jev</strong> dentro de n8n, discriminando por criticidad del asset.</li><li>✅ <strong>Log de auditoria</strong> de cada validacion.</li><li>🔜 <strong>Validar <code>acr</code>/<code>auth_time</code></strong> del token OIDC (intercambiar el <code>code</code>) para *probar* criptograficamente el re-auth, no solo asumirlo.</li><li>🔜 <strong>FIDO2</strong> con passkey registrada en el RP de Verify (hoy WebAuthn local/virtual).</li><li>🔜 <strong>IBM Verify push</strong> (transaccion MFA real).</li><li>🔜 <strong>Borrado real</strong> via hook en la Media Library de WordPress.</li><li>🔜 <strong>Endurecer</strong>: firmar el <code>state</code> (HMAC), rate-limit + auth en los endpoints, purga de nonces viejos.</li></ul>
+<h2>Solucion consolidada: live + referencia de produccion</h2>
+<p>El demo corre <strong>live en n8n</strong> (core verde) y la version endurecida para produccion esta</p>
+<p><strong>implementada completa</strong> en una referencia de ~825 lineas (Node nativo, sin deps) con todos</p>
+<p>los controles de seguridad. Consolidado con subworkers (implementacion + threat model).</p>
+<table><thead><tr><th>Capacidad</th><th>Demo live (n8n)</th><th>Referencia produccion</th></tr></thead><tbody><tr><td>Nonce single-use + TTL + purga</td><td>OK (cron n8n)</td><td>OK</td></tr><tr><td>Round-trip OIDC real a Verify</td><td>OK (<code>prompt=login</code>)</td><td>OK</td></tr><tr><td>Validar <code>acr</code>/<code>auth_time</code> (prueba del re-auth)</td><td>parcial</td><td>OK (<code>code</code>->token, <code>auth_time&lt;120s</code>)</td></tr><tr><td><code>state</code> firmado (HMAC) anti-forja</td><td>pendiente</td><td>OK</td></tr><tr><td>FIDO2 / WebAuthn server-side</td><td>local/virtual</td><td>OK</td></tr><tr><td>IBM Verify push</td><td>mock</td><td>OK (stub con API real)</td></tr><tr><td>Gate de riesgo Jev (discrimina 0.95 vs 0.32)</td><td>OK</td><td>hook</td></tr><tr><td>Rate-limit + log de auditoria</td><td>audit OK</td><td>OK ambos</td></tr><tr><td>Borrado real de la accion</td><td>simulado (destructivo)</td><td>OK (DELETE configurable)</td></tr></tbody></table>
+<p><strong>Threat model revisado:</strong> replay, forja de <code>state</code>, CSRF en el callback, callback sin validar</p>
+<p>re-auth, race en el consume, DoS de mint, nonce en logs - cada vector con su contramedida en la</p>
+<p>referencia (HMAC en el <code>state</code>, consume atomico CAS, validacion de firma JWT + <code>acr</code>/<code>auth_time</code>,</p>
+<p>rate-limit por IP).</p>
 <h2>Reproducir el lab</h2>
 <p>Demo autocontenida, <strong>sin dependencias</strong> (<code>fetch</code>/<code>http</code> nativos). Levanta el servidor y</p>
 <p>abrí la página:</p>
