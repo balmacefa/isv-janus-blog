@@ -74,12 +74,18 @@ th{background:#159957;color:#fff}
 <h2>Jev decide CUÁNDO pedir step-up (gate de riesgo)</h2>
 <p>Pedir validación en *cada* clic mata la UX. Aquí entra <strong>Jev</strong> (juicios calibrados): evalúa</p>
 <p>el riesgo de la acción y decide si amerita step-up. *Jev juzga, el código decide.*</p>
-<table><thead><tr><th>Asset</th><th>Jev <code>¿requiere step-up?</code></th><th><code>riesgo</code></th><th>Resultado</th></tr></thead><tbody><tr><td><code>Q4-report.pdf</code> (reporte financiero, producción, 1.2k descargas)</td><td><strong>0.96</strong></td><td><strong>0.99</strong></td><td>step-up obligatorio</td></tr><tr><td><code>borrador-temp.png</code> (sandbox, 0 descargas)</td><td><strong>0.07</strong></td><td><strong>0.01</strong></td><td>pasa silencioso</td></tr></tbody></table>
+<table><thead><tr><th>Asset</th><th>Jev <code>¿requiere step-up?</code></th><th><code>riesgo</code></th><th>Resultado</th></tr></thead><tbody><tr><td><code>Q4-report.pdf</code> (reporte financiero, producción, 1.2k descargas)</td><td><strong>0.95</strong></td><td><strong>0.99</strong></td><td>step-up obligatorio</td></tr><tr><td><code>borrador-temp.png</code> (sandbox, baja criticidad, 0 descargas)</td><td><strong>0.32</strong></td><td><strong>0.00</strong></td><td>pasa silencioso</td></tr></tbody></table>
+<p>*Numeros medidos EN VIVO contra el gate Jev dentro de n8n (state estructurado con entorno/criticidad/descargas).*</p>
 <p>El operador solo es interrumpido cuando de verdad importa. (Mismo motor de riesgo que el</p>
 <p>caso *SoD Guardian* — se reusa.)</p>
 <p><strong>Corre dentro de n8n:</strong> el gate es un nodo HTTP del workflow que llama a</p>
 <p><code>api.typesafe.ai/v1/systemone</code>; cada <code>mint</code> devuelve <code>needsStepup</code> + <code>riesgo</code> juzgados por</p>
 <p>Jev en produccion (la key vive en una credencial n8n, nunca en el codigo).</p>
+<p><strong>Auditoria:</strong> cada validacion se registra en una Data Table <code>otav_audit</code> (timestamp, nonce,</p>
+<p>assetId, resultado, mecanismo) — evidencia exportable de quien aprobo que y cuando.</p>
+<h2>Roadmap a produccion</h2>
+<p>Lo que ya esta live y lo que queda para endurecerlo:</p>
+<ul><li>✅ <strong>Backend real en n8n</strong> (webhooks, nonce en Data Table, single-use + TTL).</li><li>✅ <strong>Round-trip OIDC real</strong> a IBM Verify (<code>prompt=login</code>, re-auth exigida).</li><li>✅ <strong>Gate de riesgo Jev</strong> dentro de n8n, discriminando por criticidad del asset.</li><li>✅ <strong>Log de auditoria</strong> de cada validacion.</li><li>🔜 <strong>Validar <code>acr</code>/<code>auth_time</code></strong> del token OIDC (intercambiar el <code>code</code>) para *probar* criptograficamente el re-auth, no solo asumirlo.</li><li>🔜 <strong>FIDO2</strong> con passkey registrada en el RP de Verify (hoy WebAuthn local/virtual).</li><li>🔜 <strong>IBM Verify push</strong> (transaccion MFA real).</li><li>🔜 <strong>Borrado real</strong> via hook en la Media Library de WordPress.</li><li>🔜 <strong>Endurecer</strong>: firmar el <code>state</code> (HMAC), rate-limit + auth en los endpoints, purga de nonces viejos.</li></ul>
 <h2>Reproducir el lab</h2>
 <p>Demo autocontenida, <strong>sin dependencias</strong> (<code>fetch</code>/<code>http</code> nativos). Levanta el servidor y</p>
 <p>abrí la página:</p>
