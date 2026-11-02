@@ -33,7 +33,11 @@ th{background:#159957;color:#fff}
 <p>(<code>/otav-mint</code>, <code>/otav-callback</code>) son reales. El backend es un workflow n8n con el nonce</p>
 <p>persistido en una <strong>Data Table</strong>, el enforce de un-solo-uso + TTL, y el **gate de riesgo</p>
 <p>con Jev** corriendo dentro de n8n.</p>
-<p><img alt="UI servida por n8n" src="../assets/otav-n8n-hero.png?v=31047"></p>
+<p><img alt="UI del demo (estilo Apple) servida por n8n" src="../assets/otav-ui-v2-initial.png?v=56845"></p>
+<p><strong>Demo en vivo: <a href="https://n8n-public.balmacefa.com/webhook/otav-ui">Probar el One-Time Action Validator &rarr;</a></strong> -- autoexplicativo, con</p>
+<p>indicador de pasos, el juicio de Jev en vivo y boton de reinicio. FIDO2 dispara Windows Hello</p>
+<p>real; OIDC re-autentica en IBM Verify.</p>
+<p><img alt="El ciclo en marcha: Jev evalua el riesgo (99%) y se exige step-up" src="../assets/otav-ui-v2-done.png?v=70731"></p>
 <p><strong>El step-up OIDC es un round-trip REAL contra IBM Verify.</strong> Al pulsar "Borrar", el</p>
 <p>navegador se redirige de verdad al tenant con <code>prompt=login</code> y **Verify exige</p>
 <p>re-autenticarse** antes de dejar continuar. Esta es la pantalla real que aparece:</p>
