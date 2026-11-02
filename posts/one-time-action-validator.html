@@ -1,0 +1,135 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>One-Time Action Validator: re-verificar al humano en el clic destructivo</title><style>
+body{max-width:820px;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1b1f23}
+h1{border-bottom:2px solid #159957;padding-bottom:.3em;color:#159957}
+h2{color:#155799;margin-top:1.8em}
+a{color:#1e6bb8}
+code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
+pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
+pre code{background:none;padding:0}
+img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
+video{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0;display:block}
+table{border-collapse:collapse;width:100%;margin:1em 0}
+th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
+th{background:#159957;color:#fff}
+.nav{margin-bottom:1.5em}.foot{margin-top:3em;color:#6a737d;font-size:.85em;border-top:1px solid #e1e4e8;padding-top:1em}
+</style></head>
+<body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
+<h1>One-Time Action Validator: re-verificar al humano en el clic destructivo</h1>
+<p>El SSO resuelve *quién entra*. Pero una sesión válida no significa que <strong>cada acción</strong></p>
+<p>dentro de ella deba ejecutarse a ciegas. Cuando un operador pulsa <strong>"Borrar asset"</strong> en</p>
+<p>WordPress, ¿y si el sistema exigiera, *en ese instante*, una confirmación fuerte de que</p>
+<p>es realmente él y que aprueba <strong>esa acción concreta</strong> — una sola vez?</p>
+<p>Eso es el <strong>One-Time Action Validator (OTAV)</strong>: step-up de autenticación <strong>por transacción</strong></p>
+<p>(no por login), con un token de <strong>un solo uso</strong> atado a la acción. IBM Verify valida al</p>
+<p>humano; n8n orquesta; WordPress solo ejecuta si la validación pasa.</p>
+<p><img alt="WordPress con One-Time Action Validator" src="../assets/otav-hero.png?v=32036"></p>
+<h3>El flujo en vivo</h3>
+<video controls loop muted playsinline preload="metadata"><source src="../assets/otav-live.mp4?v=45225" type="video/mp4">Tu navegador no soporta video.</video>
+<p>*Click "Borrar" → se acuña un nonce single-use → passkey assertion → nonce consumido →</p>
+<p>asset borrado <strong>una sola vez</strong> → un replay con el mismo token queda <strong>denegado</strong>.*</p>
+<h2>El problema</h2>
+<p>Una cuenta comprometida, un insider, o un simple clic accidental: con una sesión abierta,</p>
+<p>las acciones destructivas (borrar, transferir, cambiar permisos) se ejecutan sin fricción.</p>
+<p>El daño es inmediato e irreversible. Re-autenticar en el login no ayuda — el riesgo está</p>
+<p><strong>en la acción</strong>, horas después de entrar.</p>
+<h2>El patrón: step-up por transacción + token de un solo uso</h2>
+<pre><code>WP: operador pulsa "Borrar asset Q4-report.pdf"
+  → NO borra; pide a n8n un nonce {user, action:delete, assetId, exp:60s}
+  → IBM Verify valida al HUMANO (step-up)  ──┐
+  → n8n marca el nonce CONSUMIDO  ← aprobado  │
+  → WP ejecuta el delete UNA sola vez
+  2º clic / replay con el mismo nonce → DENEGADO (single-use)</code></pre>
+<p>El <strong>nonce</strong> es la clave: válido para *una* acción, *un* asset, *una* vez, y caduca en</p>
+<p>segundos. Aunque alguien capture la aprobación, no la puede reusar.</p>
+<h2>Tres mecanismos de validación</h2>
+<h3>1. 🟢 Re-auth OIDC (<code>prompt=login</code>, <code>max_age=0</code>)</h3>
+<p>Reutiliza el SSO OIDC que ya existe entre WordPress y Verify. En el clic, se redirige a</p>
+<p>Verify forzando re-login; al volver autenticado, se acuña y consume el nonce. **Cero</p>
+<p>enrolamiento extra** — funciona con lo que ya hay.</p>
+<p><img alt="Validación por re-auth OIDC" src="../assets/otav-oidc.png?v=55491"></p>
+<h3>2. 🟢 FIDO2 / passkey assertion</h3>
+<p>El botón dispara un challenge WebAuthn (<code>navigator.credentials.get</code>) con el <code>nonce</code> como</p>
+<p>desafío. Touch ID / Windows Hello / llave de seguridad resuelven en un gesto. Slick y</p>
+<p>phishing-resistant.</p>
+<p><img alt="Validación por passkey FIDO2" src="../assets/otav-fido2.png?v=46987"></p>
+<h3>3. 🟡 IBM Verify push (transacción en el móvil)</h3>
+<p>El IBM Verify Authenticator muestra *"¿Aprobar borrado de Q4-report.pdf?"* con el contexto</p>
+<p>de la acción. Máximo wow y out-of-band. Requiere enrolar el authenticator + la API de</p>
+<p>transacción MFA (nivel 2).</p>
+<p><img alt="Validación por push al móvil" src="../assets/otav-push.png?v=48352"></p>
+<h2>Jev decide CUÁNDO pedir step-up (gate de riesgo)</h2>
+<p>Pedir validación en *cada* clic mata la UX. Aquí entra <strong>Jev</strong> (juicios calibrados): evalúa</p>
+<p>el riesgo de la acción y decide si amerita step-up. *Jev juzga, el código decide.*</p>
+<table><thead><tr><th>Asset</th><th>Jev <code>¿requiere step-up?</code></th><th><code>riesgo</code></th><th>Resultado</th></tr></thead><tbody><tr><td><code>Q4-report.pdf</code> (reporte financiero, producción, 1.2k descargas)</td><td><strong>0.96</strong></td><td><strong>0.99</strong></td><td>step-up obligatorio</td></tr><tr><td><code>borrador-temp.png</code> (sandbox, 0 descargas)</td><td><strong>0.07</strong></td><td><strong>0.01</strong></td><td>pasa silencioso</td></tr></tbody></table>
+<p>El operador solo es interrumpido cuando de verdad importa. (Mismo motor de riesgo que el</p>
+<p>caso *SoD Guardian* — se reusa.)</p>
+<h2>Reproducir el lab</h2>
+<p>Demo autocontenida, <strong>sin dependencias</strong> (<code>fetch</code>/<code>http</code> nativos). Levanta el servidor y</p>
+<p>abrí la página:</p>
+<pre><code>node otav-demo.mjs        # http://localhost:7799</code></pre>
+<ol><li>Elegí el mecanismo (OIDC / FIDO2 / Push) y pulsá <strong>Borrar asset</strong>.</li><li>Observá: nonce acuñado → validación → asset borrado → <strong>replay denegado</strong>.</li><li>El nonce es single-use y caduca a los 60s (<code>/consume</code> rechaza <code>ya-usado</code>/<code>expirado</code>).</li></ol>
+<p>> <strong>Nota de captura:</strong> FIDO2 se automatiza con un *virtual authenticator* vía CDP</p>
+<p>> (<code>WebAuthn.addVirtualAuthenticator</code>) para que la passkey complete sin Touch ID real —</p>
+<p>> útil para grabar el demo headless (ver skill <code>demo-media</code>).</p>
+<h2>El código completo (<code>otav-demo.mjs</code>)</h2>
+<pre><code>import { createServer } from "node:http";
+const PORT = 7799;
+const TENANT = "https://tenant.verify.ibm.com";
+const WP_CLIENT = "isv-wp-oidc"; // el real vive en el OIDC app de WordPress
+const nonces = new Map();        // nonce -&gt; {action,assetId,used,exp}
+let ASSET = { id: "a-q4", name: "Q4-report.pdf", exists: true };
+const uid = () =&gt; "otav_" + Math.random().toString(36).slice(2, 10);
+const json = (res, o) =&gt; { res.writeHead(200, {"content-type":"application/json"}); res.end(JSON.stringify(o)); };
+const body = req =&gt; new Promise(r =&gt; { let d=""; req.on("data",c=&gt;d+=c); req.on("end",()=&gt;r(d?JSON.parse(d):{})); });
+
+createServer(async (req, res) =&gt; {
+  const u = new URL(req.url, "http://x");
+  if (u.pathname === "/") { res.writeHead(200, {"content-type":"text/html"}); return res.end(PAGE); }
+
+  // ① acuñar nonce single-use atado a la acción
+  if (u.pathname === "/mint") {
+    const b = await body(req); const n = uid();
+    nonces.set(n, { ...b, used:false, exp: Date.now()+60000 });
+    return json(res, { nonce:n });
+  }
+  // ② consumir (un solo uso; rechaza desconocido/ya-usado/expirado)
+  if (u.pathname === "/consume") {
+    const { nonce } = await body(req); const e = nonces.get(nonce);
+    if (!e)            return json(res, { ok:false, reason:"desconocido" });
+    if (e.used)        return json(res, { ok:false, reason:"ya-usado" });
+    if (Date.now()&gt;e.exp) return json(res, { ok:false, reason:"expirado" });
+    e.used = true;     return json(res, { ok:true });
+  }
+  // ③ ejecutar la acción (solo si el nonce fue consumido)
+  if (u.pathname === "/delete") {
+    const { nonce } = await body(req); const e = nonces.get(nonce);
+    if (!e || !e.used) return json(res, { ok:false });
+    ASSET.exists = false; return json(res, { ok:true, name: ASSET.name });
+  }
+  // step-up 1: URL real de re-auth OIDC (prompt=login fuerza re-verificación)
+  if (u.pathname === "/oidc-url") {
+    const { nonce } = await body(req);
+    const url = `${TENANT}/oidc/endpoint/default/authorize?client_id=${WP_CLIENT}`
+      + `&amp;response_type=code&amp;scope=openid&amp;prompt=login&amp;max_age=0`
+      + `&amp;redirect_uri=http://localhost:${PORT}/oidc-callback&amp;state=${nonce}`;
+    return json(res, { url });
+  }
+  // step-up 3: push al móvil (mock nivel-2)
+  if (u.pathname === "/push-approve") { await new Promise(r=&gt;setTimeout(r,1600)); return json(res, { approved:true }); }
+  if (u.pathname === "/reset") { ASSET.exists = true; return json(res, { ok:true }); }
+  res.writeHead(404); res.end("nope");
+}).listen(PORT, () =&gt; console.log("OTAV demo en http://localhost:" + PORT));</code></pre>
+<p>*(La página <code>PAGE</code> — UI de WordPress + el JS que dispara <code>/mint</code> → step-up elegido →</p>
+<p><code>/consume</code> → <code>/delete</code>, incluido el challenge WebAuthn para FIDO2 — va embebida en el mismo</p>
+<p>archivo. Es un único <code>.mjs</code> de ~100 líneas.)*</p>
+<h2>Operación (IA / PACT)</h2>
+<pre><code>i#otav#wp-action-&gt;verify=stepup+single-use"state=DEMO-OK ^D ?9
+ d2&lt;wp&gt;verify~oidc|fido2|push
+ flow: clic-destructivo -&gt; /mint nonce{action,assetId,exp=60s} -&gt; STEPUP -&gt; /consume(once) -&gt; /delete(1x)
+ stepup:[ oidc:authorize?prompt=login&amp;max_age=0 | fido2:navigator.credentials.get(challenge=nonce) | push:verify-authenticator-tx ]
+ nonce: single-use, TTL 60s, rechaza {desconocido,ya-usado,expirado} ; replay -&gt; DENEGADO
+ riskgate: Jev noul '¿requiere stepup?' -&gt; prod=0.96 / trivial=0.07 (no molestar en acciones triviales)
+ repro: node otav-demo.mjs @ :7799 ; FIDO2 headless = CDP WebAuthn.addVirtualAuthenticator
+ proof: otav-live.mp4 (clic-&gt;passkey-&gt;borrado-&gt;replay denegado) + 3 screenshots por mecanismo</code></pre>
+<div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>
