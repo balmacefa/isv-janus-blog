@@ -1,0 +1,53 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Respuesta adaptativa: contener un login anómalo de IBM Verify en segundos</title><style>
+body{max-width:820px;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1b1f23}
+h1{border-bottom:2px solid #159957;padding-bottom:.3em;color:#159957}
+h2{color:#155799;margin-top:1.8em}
+a{color:#1e6bb8}
+code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
+pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
+pre code{background:none;padding:0}
+img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
+table{border-collapse:collapse;width:100%;margin:1em 0}
+th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
+th{background:#159957;color:#fff}
+.nav{margin-bottom:1.5em}.foot{margin-top:3em;color:#6a737d;font-size:.85em;border-top:1px solid #e1e4e8;padding-top:1em}
+</style></head>
+<body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
+<h1>Respuesta adaptativa: contener un login anómalo de IBM Verify en segundos</h1>
+<p>> <strong>Estado:</strong> Blueprint ejecutable — workflow n8n importable en <code>n8n-templates/adaptive-threat-response.workflow.json</code> · NO activado en el tenant live (gate DRY_RUN=true).</p>
+<p>> <strong>El escenario:</strong> si el Threat Detection de IBM Verify detecta un inicio de sesión anómalo (viaje imposible, IP sospechosa o fuerza bruta), no te limites a enviar un correo pasivo; con n8n degradas al usuario en WordPress a rol de solo lectura y le fuerzas un enrolamiento de Passkey FIDO2 para recuperar privilegios.</p>
+<h2>Para humanos</h2>
+<p>Recibir un correo de alerta cuando un atacante ya tiene una sesión abierta downstream no mitiga el impacto. La respuesta adaptativa conecta las señales de riesgo del IdP con contención activa y gradual antes de que ocurra movimiento lateral.</p>
+<p>El flujo procesa las alertas diferenciando la severidad:</p>
+<ul><li><strong>Riesgo Medio:</strong> no suspendemos la cuenta para evitar fricción innecesaria. En Verify no existe un endpoint directo de "forzar MFA"; en su lugar, aplicamos <code>PATCH /v2.0/Groups/{step-up-required}</code> agregando al usuario a un grupo SCIM asociado a una <strong>política de acceso</strong> que exige Passkey FIDO2 obligatoria. Se envía un email "¿fuiste tú?" y un nodo <code>Wait</code> retira al usuario del grupo tras 24 horas si no hay reincidencia.</li><li><strong>Riesgo Alto:</strong> contención inmediata en dos frentes. Se inhabilita la cuenta en Verify (<code>active:false</code>) cortando la re-autenticación OIDC y se degrada de inmediato el usuario en WordPress a rol <code>subscriber</code> (<code>POST /wp-json/wp/v2/users/{id}</code>). El SOC recibe la telemetría (IP, país, score) y el flujo espera aprobación manual mediante un webhook (<code>/reinstate</code>).</li></ul>
+<p>> [!NOTE]</p>
+<p>> La ruta de ingesta de eventos de riesgo (<code>GET /v1.0/.../events</code>) está <strong>POR VALIDAR</strong>, supeditada a cerrar el backlog #10 (API client read-only para telemetría).</p>
+<h3>Cómo se ve el flujo en n8n</h3>
+<table><thead><tr><th>Paso</th><th>Nodo n8n</th><th>Acción</th></tr></thead><tbody><tr><td>Trigger</td><td>Schedule / Webhook</td><td>Ejecución cada 1 min (o Webhook si hay event streaming)</td></tr><tr><td>Ingesta</td><td>HTTP Request</td><td><code>GET /v1.0/.../events?severity=high</code> (*Ruta POR VALIDAR - backlog #10*)</td></tr><tr><td>Deduplicar</td><td>Remove Duplicates</td><td>Dedup por <code>eventId</code> para evitar reprocesamiento</td></tr><tr><td>Parsear</td><td>Code</td><td>Extrae <code>userId</code>, <code>riskScore</code>, <code>ipAddress</code> y contexto geográfico</td></tr><tr><td>Evaluar</td><td>Switch</td><td>Clasifica según bandas: <code>BAJO</code>, <code>MEDIO</code>, <code>ALTO</code></td></tr><tr><td>Step-up (Medio)</td><td>HTTP Request + Wait</td><td><code>PATCH /v2.0/Groups/{id}</code> add member (política FIDO2) + email + Wait 24h + remove</td></tr><tr><td>Suspender (Alto)</td><td>HTTP Request</td><td><code>PATCH /v2.0/Users/{id}</code> → <code>active:false</code> (SCIM en Verify)</td></tr><tr><td>Degradar WP (Alto)</td><td>HTTP Request</td><td><code>POST /wp-json/wp/v2/users/{id}</code> → <code>roles:["subscriber"]</code></td></tr><tr><td>Alerta SOC</td><td>Slack / Email + Wait</td><td>Notifica IP/país/score + nodo Wait (webhook firmado para Reinstate)</td></tr></tbody></table>
+<h3>Guard-rails (lo serio)</h3>
+<ul><li><strong>Falsos positivos y personas reales:</strong> la suspensión automática (<code>active:false</code>) solo se ejecuta con score <code>ALTO</code> y sobre cuentas no críticas. Desplegar en modo <code>DRY_RUN</code> para calibrar umbrales antes de activar escritura.</li><li><strong>Allow-list para VIP / Break-Glass:</strong> administradores maestros y cuentas de emergencia break-glass quedan excluidos de acciones automáticas para prevenir auto-bloqueos.</li><li><strong>Circuit breaker:</strong> límite estricto de suspensiones automáticas por hora (p. ej. máx. 5 suspensiones/hora) para mitigar ataques de denegación de servicio por spoofing.</li><li><strong>Idempotencia:</strong> cursor temporal y deduplicación estricta por <code>eventId</code> para no procesar el mismo evento en múltiples ejecuciones.</li><li><strong>Seguridad del token:</strong> cliente de API secundario de Verify con permisos mínimos (<code>manageGroupMembers</code> y actualización acotada); el Bearer token nunca se vuelca en logs ni mensajes.</li><li><strong>Reversibilidad:</strong> la acción de cuarentena nunca elimina cuentas (<code>DELETE</code>), solo conmuta <code>active:false</code> y es 100% reversible mediante <code>active:true</code> y restauración del rol previo en WordPress.</li></ul>
+<h2>Operación (IA / PACT)</h2>
+<pre><code>i#adaptive-threat#verify+wp=quarantine+stepup"state=DESIGN ^D ?8 risk=HIGH(write)
+ d4&lt;schedule/event&gt;n8n~verify~wp
+ trig: Schedule(1m) | Webhook(event_streaming)
+ auth: POST /v1.0/endpoint/default/token grant=client_credentials
+ ops:[
+   pollRisk = GET /v1.0/events?filter=severity eq "high"   # POR VALIDAR (backlog #10)
+   dedup    = removeDuplicates(eventId)
+   classify = switch(score) -&gt; [LOW: log, MED: stepUp, HIGH: quarantine]
+   stepUp   = PATCH /v2.0/Groups/{stepUpId}{Operations:[{op:add,path:members,value:[{value:userId}]}]} # activa politica MFA
+   quarantine= PATCH /v2.0/Users/{id}{Operations:[{op:replace,path:active,value:false}]}
+   demoteWP = POST /wp-json/wp/v2/users/{id}{roles:["subscriber"]}
+   notifySOC= slack card{user,score,ip,country} + wait(webhook:reinstate)
+ ]
+ guard: dry_run=true | circuit_breaker(max=5/h) | allow_list(vip,breakglass) | dedup(eventId) | reversible(active=true) | token!log | webhook=signed
+ undo: /reinstate -&gt; PATCH /v2.0/Users/{id}{active:true} + POST /wp-json/wp/v2/users/{id}{roles:[prevRole]}</code></pre>
+<h2>Artefacto</h2>
+<p>El flujo completo está empaquetado como <a href="../n8n-templates/adaptive-threat-response.workflow.json">workflow n8n importable</a> listo para desplegar.</p>
+<p><strong>Cómo importarlo:</strong></p>
+<ol><li>En n8n, navega a <strong>Workflows</strong> → <strong>Import from File</strong></li><li>Selecciona <code>adaptive-threat-response.workflow.json</code></li><li>Configura las variables de entorno:</li></ol>
+<ul><li><code>VERIFY_TENANT</code>: URL base del tenant (p.ej. <code>https://tenant.verify.ibm.com</code>)</li><li><code>STEP_UP_GROUP_ID</code>: ID del grupo SCIM vinculado a la política FIDO2</li><li><code>WP_SITE</code>: URL del sitio WordPress downstream</li><li><code>SLACK_WEBHOOK</code>: Webhook para alertas SOC</li></ul>
+<ol><li>Verifica que <code>DRY_RUN=true</code> en el nodo <strong>Guard Rails Config</strong> antes de activar</li><li>Ejecuta en modo dry-run para calibrar umbrales de riesgo</li><li>Una vez validado, cambia <code>DRY_RUN=false</code> y activa el workflow</li></ol>
+<p><strong>Recordatorio:</strong> La ruta de ingesta de eventos (<code>GET /v1.0/events</code>) está <strong>pendiente de validar</strong> según backlog #10. Reemplazar el trigger <code>Schedule</code> por <code>Webhook</code> si el tenant soporta event streaming en tiempo real.</p>
+<div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>

@@ -1,0 +1,46 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Kill-Switch de identidad: cuarentena en 3 segundos</title><style>
+body{max-width:820px;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1b1f23}
+h1{border-bottom:2px solid #159957;padding-bottom:.3em;color:#159957}
+h2{color:#155799;margin-top:1.8em}
+a{color:#1e6bb8}
+code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
+pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
+pre code{background:none;padding:0}
+img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
+table{border-collapse:collapse;width:100%;margin:1em 0}
+th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
+th{background:#159957;color:#fff}
+.nav{margin-bottom:1.5em}.foot{margin-top:3em;color:#6a737d;font-size:.85em;border-top:1px solid #e1e4e8;padding-top:1em}
+</style></head>
+<body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
+<h1>Kill-Switch de identidad: cuarentena en 3 segundos</h1>
+<p>> <strong>Estado:</strong> Blueprint ejecutable — workflow n8n importable en <code>n8n-templates/kill-switch-identidad.workflow.json</code> · NO activado en el tenant live (gate DRY_RUN=true).</p>
+<p>> <strong>El escenario:</strong> el SOC detecta una credencial filtrada (o un offboarding hostil). Deshabilitar accesos app por app toma minutos críticos de exposición. Un <strong>único comando de ChatOps</strong> dispara un flujo de n8n que <strong>suspende la identidad en IBM Verify, revoca su sesión y la congela en WordPress</strong> — todo en segundos.</p>
+<h2>Para humanos</h2>
+<p>El problema real: suspender a un usuario en el IdP <strong>no siempre mata la cookie de sesión</strong> ya activa en la app downstream (WordPress). El atacante con una sesión abierta sigue dentro. El Kill-Switch cierra las tres puertas a la vez.</p>
+<p>Disparo (ChatOps restringido a <code>admin</code> / <code>privacy officer</code>):</p>
+<pre><code>/kill ana@acme.com  motivo="credencial filtrada"</code></pre>
+<p>Lo que pasa en <3s:</p>
+<ol><li><strong>Suspende en Verify (SCIM):</strong> <code>PATCH /v2.0/Users/{id}</code> con <code>active:false</code>. El usuario ya no puede re-autenticar OIDC.</li><li><strong>Congela en WordPress:</strong> <code>POST /wp-json/wp/v2/users/{id}</code> → rol <code>subscriber</code> (sin edición) y revoca application passwords.</li><li><strong>Confirma + forense:</strong> tarjeta al canal de incidentes con usuario, timestamp de corte y acciones aplicadas.</li></ol>
+<p><strong>Demo E2E:</strong> con una sesión de WordPress abierta en otra pestaña, al lanzar <code>/kill</code> el siguiente request del atacante al wp-admin cae porque su rol ya es <code>subscriber</code> y Verify rechaza el refresh del token. Expulsión sin tocar la consola.</p>
+<h3>Cómo se ve el flujo en n8n</h3>
+<table><thead><tr><th>Paso</th><th>Nodo n8n</th><th>Acción</th></tr></thead><tbody><tr><td>Trigger</td><td>Webhook (firmado)</td><td>Slash-command de Slack/Telegram → <code>{user, motivo}</code></td></tr><tr><td>Auth</td><td>HTTP Request</td><td><code>POST /v1.0/endpoint/default/token</code> (client_credentials)</td></tr><tr><td>Resolver</td><td>HTTP Request</td><td><code>GET /v2.0/Users?filter=userName eq "&lt;email&gt;"</code> → <code>userId</code></td></tr><tr><td>Suspender</td><td>HTTP Request</td><td><code>PATCH /v2.0/Users/{id}</code> → <code>active:false</code></td></tr><tr><td>Congelar WP</td><td>HTTP Request</td><td><code>POST /wp-json/wp/v2/users/{id}</code> → <code>roles:["subscriber"]</code></td></tr><tr><td>Notificar</td><td>Slack / Telegram</td><td>tarjeta forense de confirmación</td></tr></tbody></table>
+<h3>Guard-rails (lo serio)</h3>
+<ul><li><strong>Escritura destructiva</strong> → el disparo exige ChatOps autenticado y allow-list de ejecutores (<code>admin</code>, <code>privacy officer</code>).</li><li><strong>Nunca</strong> borra la cuenta: solo <code>active:false</code> (reversible con un <code>/reinstate</code>).</li><li><strong>Webhook firmado (HMAC/secreto)</strong> — si no, cualquiera suspende administradores.</li><li>El token de Verify <strong>nunca</strong> se loguea ni viaja en mensajes de error.</li></ul>
+<h2>Operación (IA / PACT)</h2>
+<pre><code>i#kill-switch#verify+wp=quarantine"state=DESIGN ^D ?9 risk=HIGH(write)
+ d3&lt;chatops&gt;n8n~verify~wp
+ trig: Webhook(hmac) {user,motivo} acl=[admin,privacy officer]
+ auth: POST /v1.0/endpoint/default/token grant=client_credentials
+ ops:[
+   resolve = GET /v2.0/Users?filter=userName eq "&lt;email&gt;"        # -&gt; userId
+   suspend = PATCH /v2.0/Users/{id}{Operations:[{op:replace,path:active,value:false}]}
+   freezeWP= POST /wp-json/wp/v2/users/{id}{roles:["subscriber"]} # revoca app-passwords
+   notify  = slack/telegram card{user,ts,actions}
+ ]
+ guard: reversible(active=false, no DELETE) | token!log | webhook=signed
+ undo: /reinstate -&gt; PATCH active=true</code></pre>
+<h2>Artefacto</h2>
+<ul><li>Descarga: <a href="../n8n-templates/kill-switch-identidad.workflow.json">workflow n8n importable</a></li><li>Importar: n8n → <strong>Import from File</strong> → seleccionar el JSON. Crear las credenciales por nombre: <code>IBM Verify - Client Credentials (SCIM)</code> (httpCustomAuth) y <code>WordPress - Application Password</code> (httpBasicAuth); definir las variables de entorno <code>KILL_SWITCH_HMAC_SECRET</code> y <code>SLACK_WEBHOOK_URL</code>, y ajustar <code>VERIFY_HOST</code> / <code>WP_HOST</code> en el nodo <code>Config DRY_RUN</code>.</li><li><strong>Las escrituras (PATCH Verify, POST WordPress) van tras el gate <code>DRY_RUN=true</code></strong>: por defecto solo se simula y notifica. Cambiar a <code>false</code> únicamente tras validar en un entorno de prueba. El workflow se importa inactivo (<code>active:false</code>).</li></ul>
+<div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>

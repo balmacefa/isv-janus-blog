@@ -1,0 +1,45 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Acceso privilegiado efímero (JIT): admin temporal en WordPress con auto-expiración en Verify</title><style>
+body{max-width:820px;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1b1f23}
+h1{border-bottom:2px solid #159957;padding-bottom:.3em;color:#159957}
+h2{color:#155799;margin-top:1.8em}
+a{color:#1e6bb8}
+code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
+pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
+pre code{background:none;padding:0}
+img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
+table{border-collapse:collapse;width:100%;margin:1em 0}
+th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
+th{background:#159957;color:#fff}
+.nav{margin-bottom:1.5em}.foot{margin-top:3em;color:#6a737d;font-size:.85em;border-top:1px solid #e1e4e8;padding-top:1em}
+</style></head>
+<body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
+<h1>Acceso privilegiado efímero (JIT): admin temporal en WordPress con auto-expiración en Verify</h1>
+<p>> <strong>Estado:</strong> Blueprint ejecutable — workflow n8n importable en <code>n8n-templates/jit-privileged-access.workflow.json</code> · NO activado en el tenant live (gate DRY_RUN=true).</p>
+<p>> <strong>El escenario:</strong> mantener administradores permanentes en WordPress es una mala práctica que amplía la superficie de ataque. Cuando un desarrollador necesita resolver una urgencia técnica, solicita elevación temporal por chat y, tras la aprobación de su líder, n8n lo añade al grupo <code>admin</code> en IBM Verify y programa la revocación automática a los 30 minutos.</p>
+<h2>Para humanos</h2>
+<p>El acceso Just-in-Time (JIT) erradica las cuentas con privilegios permanentes (*standing privileges*). Los desarrolladores operan por defecto con el rol base <code>developer</code>. Cuando se requiere mantenimiento de infraestructura o configuración en WordPress:</p>
+<ol><li><strong>Solicitud ChatOps:</strong> El desarrollador envía <code>/jit-request motivo="hotfix en wp-config" duracion=30m</code>.</li><li><strong>Aprobación de cuatro ojos:</strong> El líder técnico recibe un mensaje interactivo en Slack/Telegram para aprobar o rechazar la solicitud.</li><li><strong>Escalamiento JIT en Verify:</strong> n8n añade al usuario como miembro del grupo <code>admin</code> vía SCIM. En el próximo refresh de token OIDC, WordPress mapea el claim de grupos y eleva la sesión a rol <code>administrator</code>.</li><li><strong>Auto-expiración programada:</strong> Transcurridos los 30 minutos, n8n ejecuta la revocación automática de membresía en Verify, devolviendo al usuario a su rol habitual y notificando la expiración.</li></ol>
+<h3>Flujo en n8n</h3>
+<table><thead><tr><th>Paso</th><th>Nodo n8n</th><th>Acción</th></tr></thead><tbody><tr><td>Trigger</td><td>Webhook (firmado)</td><td>Recibe la solicitud <code>{user, motivo, duracion: "30m"}</code></td></tr><tr><td>Aprobación</td><td>Slack / Telegram</td><td>Envía tarjeta interactiva con botones <code>[Aprobar]</code> y <code>[Rechazar]</code> al líder</td></tr><tr><td>Decisión</td><td>IF / Switch</td><td>Evalúa la respuesta; si es rechazada, cancela y avisa al solicitante</td></tr><tr><td>Auth</td><td>HTTP Request</td><td><code>POST /v1.0/endpoint/default/token</code> (grant=client_credentials)</td></tr><tr><td>Elevar JIT</td><td>HTTP Request</td><td><code>PATCH /v2.0/Groups/{adminGroupId}</code> (op=add members [userId])</td></tr><tr><td>Espera JIT</td><td>Wait</td><td>Pausa el flujo durante 30 minutos</td></tr><tr><td>Revocar</td><td>HTTP Request</td><td><code>PATCH /v2.0/Groups/{adminGroupId}</code> (op=remove member [userId])</td></tr><tr><td>Auditoría</td><td>Slack / Telegram</td><td>Notifica expiración al usuario y envía registro al canal de auditoría</td></tr></tbody></table>
+<h3>Guard-rails (lo serio)</h3>
+<ul><li><strong>Escritura y elevación de privilegios:</strong> Operación sensible de alto riesgo; requiere webhook firmado (HMAC) y aprobación humana obligatoria (*principio de 4 ojos*).</li><li><strong>Auto-expiración y reversibilidad:</strong> Toda concesión tiene un TTL estricto (30 min) y se revoca por diseño; si la sesión concluye antes, se puede revocar manualmente bajo demanda.</li><li><strong>Idempotencia:</strong> Comprobación previa de pertenencia para no duplicar asignaciones y verificación de integridad para no remover jamás al último administrador del sistema.</li><li><strong>Webhook firmado:</strong> Validación estricta de firma criptográfica para impedir spoofing o inyecciones de solicitudes no autorizadas.</li><li><strong>Seguridad del token:</strong> Las credenciales de API (<code>client_credentials</code>) y el Bearer token de IBM Verify nunca se imprimen en logs de ejecución ni se envían en mensajes de notificación.</li></ul>
+<h2>Operación (IA / PACT)</h2>
+<pre><code>i#jit-privileged-access#verify+wp=ephemeral-admin"state=DESIGN ^D ?9 risk=HIGH(write,privilege-escalation)
+ d4&lt;chatops&gt;n8n~verify~wp
+ auth: POST /v1.0/endpoint/default/token grant=client_credentials
+ ops:[
+   trigger = Webhook(hmac) {user,motivo,duration:"30m"}
+   approve = interactive-card [Aprobar/Rechazar] target=lead
+   check   = IF approved == true
+   elevate = PATCH /v2.0/Groups/{adminGroupId}{Operations:[{op:add,path:members,value:[{value:userId}]}]}
+   wait    = Wait duration=30m
+   revoke  = PATCH /v2.0/Groups/{adminGroupId}{Operations:[{op:remove,path:members[value eq "{userId}"]}]}
+   audit   = notify slack/telegram card{user,adminGroupId,action:revoked,ts}
+ ]
+ guard: ephemeral(ttl=30m) | human-approval(4-eyes) | no-drop-last-admin | token!log | webhook=signed | idempotent
+ oidc: claim-refresh-on-token-renewal(groups:admin-&gt;wp:roles[administrator])
+ cred: &lt;credential-id&gt; | wf: &lt;workflow-id&gt;</code></pre>
+<h2>Artefacto</h2>
+<ul><li>Descarga: <a href="../n8n-templates/jit-privileged-access.workflow.json">workflow n8n importable</a></li><li>Cómo importarlo: n8n → <strong>Import from File</strong> → selecciona el <code>.json</code>. Crea las credenciales por nombre (<code>IBM Verify - Client Credentials (SCIM)</code>, Telegram aprobador/auditoría) y define las variables de entorno <code>VERIFY_TENANT</code>, <code>JIT_HMAC_SECRET</code>, <code>JIT_APPROVER_CHAT_ID</code>, <code>JIT_AUDIT_CHAT_ID</code>. El JSON no contiene secretos.</li><li>Recordatorio: las escrituras (PATCH add/remove sobre <code>/v2.0/Groups</code>) van tras el gate <code>DRY_RUN=true</code> (nodo <code>Config DRY_RUN</code>); el workflow se entrega <code>active: false</code>.</li></ul>
+<div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>

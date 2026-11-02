@@ -1,0 +1,49 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Onboarding VIP zero-touch: del alta en Verify al Passkey FIDO2 y perfil en WordPress</title><style>
+body{max-width:820px;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1b1f23}
+h1{border-bottom:2px solid #159957;padding-bottom:.3em;color:#159957}
+h2{color:#155799;margin-top:1.8em}
+a{color:#1e6bb8}
+code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
+pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
+pre code{background:none;padding:0}
+img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
+table{border-collapse:collapse;width:100%;margin:1em 0}
+th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
+th{background:#159957;color:#fff}
+.nav{margin-bottom:1.5em}.foot{margin-top:3em;color:#6a737d;font-size:.85em;border-top:1px solid #e1e4e8;padding-top:1em}
+</style></head>
+<body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
+<h1>Onboarding VIP zero-touch: del alta en Verify al Passkey FIDO2 y perfil en WordPress</h1>
+<p>> <strong>Estado:</strong> Blueprint ejecutable — workflow n8n importable en <code>n8n-templates/onboarding-zero-touch.workflow.json</code> · NO activado en el tenant live (gate DRY_RUN=true).</p>
+<p>> <strong>El escenario:</strong> elimina los correos con contraseñas temporales y la fricción del primer día; un solo trigger crea al usuario en Verify con su RBAC, aprovisiona su cuenta de autor en WordPress y le entrega un enlace seguro para enrolar su Passkey FIDO2 en el primer acceso (login 100% passwordless en <60s).</p>
+<h2>Para humanos</h2>
+<p>El aprovisionamiento manual fragmenta identidades y suele dejar credenciales provisionales vulnerables en bandejas de entrada. Este flujo automatizado conecta el formulario de alta de RRHH con IBM Verify y WordPress, garantizando acceso inmediato sin exponer secretos en texto plano.</p>
+<p>Flujo de aprovisionamiento en 6 etapas:</p>
+<ol><li><strong>Idempotencia previa:</strong> consulta por correo en Verify para evitar duplicidades o sobreescritura accidental de cuentas activas.</li><li><strong>Creación en IBM Verify:</strong> alta SCIM bajo el realm corporativo <code>cloudIdentityRealm</code> con los atributos normalizados del colaborador.</li><li><strong>Mapeo de roles RBAC:</strong> incorporación automática al grupo de Verify correspondiente (<code>developer</code> o <code>application owners</code>) según allow-list.</li><li><strong>Invitación FIDO2 sin password:</strong> emisión de enlace seguro de registro para que el usuario vincule su Passkey biométrico en su primer ingreso.</li><li><strong>Aprovisionamiento en WordPress:</strong> creación de la cuenta de autor mediante la API REST con sincronización de perfil y metadatos.</li><li><strong>Entrega del kit VIP:</strong> notificación con los accesos directos federados a las aplicaciones de la organización.</li></ol>
+<h3>Cómo se ve el flujo en n8n</h3>
+<table><thead><tr><th>Paso</th><th>Nodo n8n</th><th>Acción</th></tr></thead><tbody><tr><td>Trigger</td><td>Webhook (firmado)</td><td>Recepción de alta de RRHH: <code>{email, nombre, dept, rol}</code></td></tr><tr><td>Auth</td><td>HTTP Request</td><td><code>POST /v1.0/endpoint/default/token</code> (client_credentials)</td></tr><tr><td>Idempotencia</td><td>HTTP Request</td><td><code>GET /v2.0/Users?filter=userName eq "&lt;email&gt;"</code></td></tr><tr><td>Validar</td><td>IF / Switch</td><td>Si existe aborta o notifica; si no existe continúa el alta</td></tr><tr><td>SCIM User</td><td>HTTP Request</td><td><code>POST /v2.0/Users</code> (realm <code>cloudIdentityRealm</code>, userCategory)</td></tr><tr><td>Asignar RBAC</td><td>HTTP Request</td><td><code>PATCH /v2.0/Groups/{id}</code> (add member según rol permitido)</td></tr><tr><td>Invitación</td><td>HTTP Request</td><td><code>POST /v1.0/service/users/{id}/invitation</code> (enlace Passkey FIDO2)</td></tr><tr><td>Perfil WP</td><td>HTTP Request</td><td><code>POST /wp-json/wp/v2/users</code> (rol autor/editor + bio/avatar)</td></tr><tr><td>Notificar</td><td>Slack / Email</td><td>Envío de paquete de bienvenida con links federados</td></tr></tbody></table>
+<h3>Guard-rails (lo serio)</h3>
+<ul><li><strong>Operación de escritura / creación:</strong> las peticiones <code>POST</code> crean identidades y perfiles en Verify y WordPress; requieren validación de payload previa.</li><li><strong>Idempotencia estricta:</strong> chequeo obligatorio con <code>GET /v2.0/Users?filter=userName eq ...</code> antes de cualquier acción de alta para prevenir colisiones ante reintentos del webhook.</li><li><strong>Allow-list de RBAC:</strong> asignación de grupos controlada por lista blanca (<code>developer</code>, <code>application owners</code>) para evitar escalamiento de privilegios por manipulación del campo <code>rol</code>.</li><li><strong>Seguridad del token:</strong> el Bearer token obtenido de IBM Verify nunca se imprime en logs ni se incluye en respuestas de error de n8n.</li><li><strong>Webhook firmado:</strong> validación de firma HMAC o secreto compartido en el payload del trigger para asegurar la procedencia legítima desde RRHH.</li><li><strong>Reversibilidad y seguridad Passkey:</strong> el proceso es reversible mediante desprovisionamiento controlado; el flujo no genera ni transporta contraseñas compartidas.</li></ul>
+<h2>Operación (IA / PACT)</h2>
+<pre><code>i#onboarding-zero-touch#verify+wp=provision"state=OPERATIVO ^D ?9 risk=MED(write)
+ d3&lt;webhook&gt;n8n~verify~wp
+ trig: Webhook(hmac) {email,nombre,dept,rol}
+ auth: POST /v1.0/endpoint/default/token grant=client_credentials
+ ops:[
+   checkUser = GET /v2.0/Users?filter=userName eq "&lt;email&gt;"           # idempotencia
+   gate      = IF(checkUser.totalResults == 0) -&gt; continue : abort
+   createUser= POST /v2.0/Users{realm:cloudIdentityRealm,userCategory:regular}
+   assignRBAC= PATCH /v2.0/Groups/{id}{Operations:add members[]}       # allow-list roles
+   inviteFIDO= POST /v1.0/service/users/{id}/invitation{fido2:true}   # enroll passkey
+   createWP  = POST /wp-json/wp/v2/users{username,email,roles:[]}    # autor/editor
+   notify    = slack/email card{welcome_pack,sso_links}
+ ]
+ guard: idempotent(checkUser) | write=POST | rbac=allow-list | token!log | webhook=signed | fido2=no-secrets
+ undo: /offboard -&gt; DELETE /v2.0/Users/{id} + DELETE /wp-json/wp/v2/users/{id}</code></pre>
+<h2>Artefacto</h2>
+<ul><li>Descarga: <a href="../n8n-templates/onboarding-zero-touch.workflow.json">workflow n8n importable</a></li><li>Cómo importarlo: n8n → <strong>Import from File</strong> → selecciona <code>onboarding-zero-touch.workflow.json</code>. Configura las credenciales por nombre: <code>IBM Verify - Client Credentials (SCIM)</code> (httpCustomAuth) y <code>WordPress - Application Password</code> (httpBasicAuth); define las variables de entorno <code>ONBOARDING_HMAC_SECRET</code> y <code>SLACK_WEBHOOK_URL</code>, y ajusta <code>VERIFY_HOST</code>, <code>WP_HOST</code> y los IDs de grupos en el nodo <code>Config DRY_RUN</code>. El JSON no contiene secretos.</li><li>Recordatorio: las escrituras destructivas (POST en Verify, PATCH sobre Groups, POST de invitación y POST en WordPress) van tras el gate <code>DRY_RUN=true</code> (nodo <code>Config DRY_RUN</code>); el workflow se importa inactivo (<code>active: false</code>) y por defecto solo simula la ejecución sin alterar identidades activas.</li></ul>
+<h3>Reversibilidad</h3>
+<p>Para deshacer un aprovisionamiento:</p>
+<ol><li><code>DELETE /v2.0/Users/{id}</code> (SCIM)</li><li><code>DELETE /wp-json/wp/v2/users/{id}</code> (WordPress REST API)</li><li>Revocar la invitación FIDO2 desde la consola de Verify si aún no fue usada.</li></ol>
+<div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>
