@@ -1,20 +1,27 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Generar eventos de telemetría E2E al sink n8n</title><style>
-body{max-width:820px;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1b1f23}
-h1{border-bottom:2px solid #159957;padding-bottom:.3em;color:#159957}
-h2{color:#155799;margin-top:1.8em}
-a{color:#1e6bb8}
-code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
-pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
-pre code{background:none;padding:0}
-img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
-video{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0;display:block}
-table{border-collapse:collapse;width:100%;margin:1em 0}
-th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
-th{background:#159957;color:#fff}
-.nav{margin-bottom:1.5em}.foot{margin-top:3em;color:#6a737d;font-size:.85em;border-top:1px solid #e1e4e8;padding-top:1em}
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Generar eventos de telemetría E2E al sink n8n</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@carbon/styles@1.60.0/css/styles.min.css"><style>
+html,body{margin:0;background:var(--cds-background,#fff);color:var(--cds-text-primary,#161616);font-family:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:1rem;line-height:1.5}
+.jn-main{max-width:56rem;margin:0 auto;padding:4rem 1rem 3rem}
+.jn-main h1{font-size:2.5rem;font-weight:300;line-height:1.2;margin:0 0 1.5rem;padding-bottom:.75rem;border-bottom:1px solid var(--cds-border-subtle,#c6c6c6)}
+.jn-main h2{font-size:1.75rem;font-weight:400;margin:2.5rem 0 1rem}
+.jn-main h3{font-size:1.25rem;font-weight:600;margin:2rem 0 .75rem}
+.jn-main p{margin:0 0 1rem;max-width:42rem}
+.jn-main code{font-family:'IBM Plex Mono',Menlo,monospace;font-size:.875em;background:var(--cds-layer-01,#f4f4f4);padding:.1rem .35rem}
+.jn-main .cds--snippet--multi{margin:1rem 0;max-width:none}
+.jn-main .cds--snippet--multi pre{padding:1rem;margin:0;overflow:auto}
+.jn-main .cds--snippet--multi code{background:none;padding:0}
+.jn-main .cds--data-table-container{margin:1.5rem 0;overflow-x:auto;padding:0}
+.jn-main .cds--data-table td,.jn-main .cds--data-table th{padding:.75rem 1rem;vertical-align:top;text-align:left}
+.jn-main img,.jn-main video{max-width:100%;display:block;margin:1rem 0;border:1px solid var(--cds-border-subtle,#e0e0e0)}
+.jn-main ul,.jn-main ol{margin:0 0 1rem;padding-left:1.5rem}
+.jn-main .cds--list__item{margin:.25rem 0}
+.jn-hr{border:0;border-top:1px solid var(--cds-border-subtle,#c6c6c6);margin:2rem 0}
+.jn-crumb{margin-bottom:1.5rem}
+.jn-foot{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--cds-border-subtle,#c6c6c6);color:var(--cds-text-secondary,#525252);font-size:.75rem}
 </style></head>
-<body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
+<body class="cds--g10" style="background:var(--cds-background)">
+<header class="cds--header" role="banner" aria-label="ISV JANUS"><a class="cds--header__name" href="../index.html"><span class="cds--header__name--prefix">IBM&nbsp;</span>Security Verify · JANUS</a></header>
+<main class="jn-main"><nav class="cds--breadcrumb jn-crumb" aria-label="Breadcrumb"><div class="cds--breadcrumb-item"><a class="cds--link" href="../index.html">Índice</a></div></nav>
 <h1>Generar eventos de telemetría E2E al sink n8n</h1>
 <p>Un lab de identidad se ve pobre con el historial vacío. Para que los dashboards y los</p>
 <p>workflows de respuesta tengan de qué alimentarse, montamos un **generador de eventos</p>
@@ -32,28 +39,28 @@ th{background:#159957;color:#fff}
 <p><img alt="Sesión de terminal: generar eventos desde la API del tenant" src="../assets/n8n-terminal.png?v=47607"></p>
 <h2>Reproducir el lab (paso a paso)</h2>
 <p><strong>Prerrequisitos:</strong> Node 18+, un tenant IBM Verify y una instancia n8n con un webhook.</p>
-<ol><li><strong>API client en Verify</strong> — *Security › API access* → crear un API client con</li></ol>
+<ol class="cds--list--ordered"><li class="cds--list__item"><strong>API client en Verify</strong> — *Security › API access* → crear un API client con</li></ol>
 <p>   entitlements <strong>Manage all users</strong> + <strong>Manage all groups</strong>. Copiar <code>client_id</code> y</p>
 <p>   <code>client_secret</code> (el secret se muestra 1 sola vez).</p>
-<ol><li><strong>Webhook en n8n</strong> — workflow con nodo *Webhook* (<code>POST</code>, path <code>isv-events</code>) → *Set*</li></ol>
+<ol class="cds--list--ordered"><li class="cds--list__item"><strong>Webhook en n8n</strong> — workflow con nodo *Webhook* (<code>POST</code>, path <code>isv-events</code>) → *Set*</li></ol>
 <p>   (captura <code>headers</code>/<code>body</code>) → *Data table* (o el sink que prefieras). Activarlo.</p>
-<ol><li><strong>Guardar los secretos</strong> (fuera del código). Con el gestor local:</li></ol>
+<ol class="cds--list--ordered"><li class="cds--list__item"><strong>Guardar los secretos</strong> (fuera del código). Con el gestor local:</li></ol>
 <p>   ```</p>
 <p>   secret_set api-client-id      <client_id></p>
 <p>   secret_set api-client-secret  <client_secret></p>
 <p>   ```</p>
-<ol><li><strong>Correr el generador</strong> (100 eventos; el secret se inyecta como env):</li></ol>
+<ol class="cds--list--ordered"><li class="cds--list__item"><strong>Correr el generador</strong> (100 eventos; el secret se inyecta como env):</li></ol>
 <p>   ```</p>
 <p>   cd pike-web/janus</p>
 <p>   export PATH="/c/Program Files/nodejs:$PATH"</p>
 <p>   secret_run inject {CID:api-client-id, CSEC:api-client-secret} node isv-event-gen.mjs 100</p>
 <p>   ```</p>
 <p>   Salida esperada: <code>real tenant: 140 users, 20 groups</code> → <code>DONE sent=100 fail=0</code>.</p>
-<ol><li><strong>Verificar</strong> — en n8n, <code>/workflow/&lt;workflow-id&gt;/executions</code>: todas en modo <code>webhook</code>,</li></ol>
+<ol class="cds--list--ordered"><li class="cds--list__item"><strong>Verificar</strong> — en n8n, <code>/workflow/&lt;workflow-id&gt;/executions</code>: todas en modo <code>webhook</code>,</li></ol>
 <p>   estado <code>Succeeded</code>. O por API: <code>GET /executions?workflowId=&lt;id&gt;</code>.</p>
 <h2>El script completo (<code>isv-event-gen.mjs</code>)</h2>
 <p>Copiá este archivo a <code>pike-web/janus/</code>. Autocontenido, sin dependencias (usa <code>fetch</code> nativo).</p>
-<pre><code>// E2E ISV event generator: pulls REAL users+groups from the IBM Verify tenant
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>// E2E ISV event generator: pulls REAL users+groups from the IBM Verify tenant
 // (OAuth2 client_credentials) and emits lifecycle/SSO events referencing those
 // real identities to the n8n webhook.
 const T = "https://tenant.verify.ibm.com";
@@ -115,14 +122,14 @@ for (let i = 0; i &lt; N; i++) {
     r.ok ? ok++ : (fail++, fail &lt;= 3 &amp;&amp; console.log("HTTP", r.status, await r.text()));
   } catch (e) { fail++; fail &lt;= 3 &amp;&amp; console.log("ERR", e.message); }
 }
-console.log(`DONE sent=${ok} fail=${fail} (events built from REAL tenant identities)`);</code></pre>
+console.log(`DONE sent=${ok} fail=${fail} (events built from REAL tenant identities)`);</code></pre></div></div>
 <h2>Evidencias</h2>
-<ul><li><strong>El workflow en el editor</strong> — <code>Webhook ISV → Capture payload → Save to isv_events</code>:</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item"><strong>El workflow en el editor</strong> — <code>Webhook ISV → Capture payload → Save to isv_events</code>:</li></ul>
 <p>  <img alt="Canvas del workflow en el editor de n8n" src="../assets/n8n-workflow-editor.png?v=135258"></p>
-<ul><li><strong>Un evento tal como queda capturado</strong> por el nodo *Capture payload* (identidad real</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item"><strong>Un evento tal como queda capturado</strong> por el nodo *Capture payload* (identidad real</li></ul>
 <p>  del tenant + telemetría; datos de demo):</p>
 <p>  <img alt="Payload capturado" src="../assets/n8n-event-payload.png?v=40810"></p>
-<ul><li><strong>Conteo acumulado:</strong> <strong>633 ejecuciones, 100% <code>success</code></strong>, todas en modo <code>webhook</code></li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item"><strong>Conteo acumulado:</strong> <strong>633 ejecuciones, 100% <code>success</code></strong>, todas en modo <code>webhook</code></li></ul>
 <p>  (verificado vía API de n8n). Cada corrida de <code>node isv-event-gen.mjs 100</code> añade 100.</p>
 <h2>Para humanos</h2>
 <p><strong>Por qué "E2E real":</strong> el que las identidades salgan del tenant vivo (no de una lista</p>
@@ -132,7 +139,7 @@ console.log(`DONE sent=${ok} fail=${fail} (events built from REAL tenant identit
 <p>(<code>GET /v1.0/events</code> → <code>403</code>); con ese scope, el generador replicaría eventos históricos</p>
 <p>reales en vez de simularlos.</p>
 <h2>Operación (IA / PACT)</h2>
-<pre><code>i#event-gen-e2e#verify-&gt;n8n=telemetry"state=OPERATIVO ^D ?9
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>i#event-gen-e2e#verify-&gt;n8n=telemetry"state=OPERATIVO ^D ?9
  d2&lt;janus&gt;n8n~webhook
  src: isv-event-gen.mjs [N=100]  # autocontenido, fetch nativo, sin deps
  auth: POST /v1.0/endpoint/default/token grant=client_credentials  # creds pwmgr: api-client-id+secret, env-injected via secret_run
@@ -142,5 +149,5 @@ console.log(`DONE sent=${ok} fail=${fail} (events built from REAL tenant identit
  wf: &lt;workflow-id&gt; "ISV events sink" = Webhook ISV-&gt;Capture payload-&gt;Save to isv_events
  proof: 633 executions / 100% success / mode=webhook
  gap: GET /v1.0/events=403 (API client sin scope reports) -&gt; event_type sintetico, identidades reales
- verify: mcp n8n executions{action:list,workflowId} -&gt; data.executions[] ; action:get mode:full -&gt; payload</code></pre>
-<div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>
+ verify: mcp n8n executions{action:list,workflowId} -&gt; data.executions[] ; action:get mode:full -&gt; payload</code></pre></div></div>
+<div class="jn-foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT) · UI: IBM Carbon Design System</div></main></body></html>

@@ -1,20 +1,27 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Provisioning SCIM con n8n</title><style>
-body{max-width:820px;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1b1f23}
-h1{border-bottom:2px solid #159957;padding-bottom:.3em;color:#159957}
-h2{color:#155799;margin-top:1.8em}
-a{color:#1e6bb8}
-code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
-pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
-pre code{background:none;padding:0}
-img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
-video{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0;display:block}
-table{border-collapse:collapse;width:100%;margin:1em 0}
-th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
-th{background:#159957;color:#fff}
-.nav{margin-bottom:1.5em}.foot{margin-top:3em;color:#6a737d;font-size:.85em;border-top:1px solid #e1e4e8;padding-top:1em}
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Provisioning SCIM con n8n</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@carbon/styles@1.60.0/css/styles.min.css"><style>
+html,body{margin:0;background:var(--cds-background,#fff);color:var(--cds-text-primary,#161616);font-family:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:1rem;line-height:1.5}
+.jn-main{max-width:56rem;margin:0 auto;padding:4rem 1rem 3rem}
+.jn-main h1{font-size:2.5rem;font-weight:300;line-height:1.2;margin:0 0 1.5rem;padding-bottom:.75rem;border-bottom:1px solid var(--cds-border-subtle,#c6c6c6)}
+.jn-main h2{font-size:1.75rem;font-weight:400;margin:2.5rem 0 1rem}
+.jn-main h3{font-size:1.25rem;font-weight:600;margin:2rem 0 .75rem}
+.jn-main p{margin:0 0 1rem;max-width:42rem}
+.jn-main code{font-family:'IBM Plex Mono',Menlo,monospace;font-size:.875em;background:var(--cds-layer-01,#f4f4f4);padding:.1rem .35rem}
+.jn-main .cds--snippet--multi{margin:1rem 0;max-width:none}
+.jn-main .cds--snippet--multi pre{padding:1rem;margin:0;overflow:auto}
+.jn-main .cds--snippet--multi code{background:none;padding:0}
+.jn-main .cds--data-table-container{margin:1.5rem 0;overflow-x:auto;padding:0}
+.jn-main .cds--data-table td,.jn-main .cds--data-table th{padding:.75rem 1rem;vertical-align:top;text-align:left}
+.jn-main img,.jn-main video{max-width:100%;display:block;margin:1rem 0;border:1px solid var(--cds-border-subtle,#e0e0e0)}
+.jn-main ul,.jn-main ol{margin:0 0 1rem;padding-left:1.5rem}
+.jn-main .cds--list__item{margin:.25rem 0}
+.jn-hr{border:0;border-top:1px solid var(--cds-border-subtle,#c6c6c6);margin:2rem 0}
+.jn-crumb{margin-bottom:1.5rem}
+.jn-foot{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--cds-border-subtle,#c6c6c6);color:var(--cds-text-secondary,#525252);font-size:.75rem}
 </style></head>
-<body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
+<body class="cds--g10" style="background:var(--cds-background)">
+<header class="cds--header" role="banner" aria-label="ISV JANUS"><a class="cds--header__name" href="../index.html"><span class="cds--header__name--prefix">IBM&nbsp;</span>Security Verify · JANUS</a></header>
+<main class="jn-main"><nav class="cds--breadcrumb jn-crumb" aria-label="Breadcrumb"><div class="cds--breadcrumb-item"><a class="cds--link" href="../index.html">Índice</a></div></nav>
 <h1>Provisioning SCIM con n8n</h1>
 <p><img alt="Wizard API client en IBM Verify" src="../assets/janus-apiclient-wizard.png?v=181153"></p>
 <p><img alt="Workflows ISV en n8n" src="../assets/shot-n8n-workflows.png?v=104461"></p>
@@ -22,10 +29,10 @@ th{background:#159957;color:#fff}
 <p><img alt="Usuarios en WordPress" src="../assets/shot-wp-users.png?v=100482"></p>
 <h2>Para humanos</h2>
 <p>Alta automática de usuarios y grupos en IBM Verify desde n8n, usando SCIM 2.0.</p>
-<ol><li>En Verify: <strong>Security › API access</strong> → crear API client con entitlements <strong>Manage all users</strong>, <strong>Manage all groups</strong> y <strong>Manage all groups and their members</strong> (<code>manageGroupMembers</code>).</li><li>Copiar <code>client_id</code> + <code>client_secret</code> (el secret se muestra 1 sola vez).</li><li>En n8n: credencial <strong>"IBM Verify - Client Credentials (SCIM)"</strong> (<code>&lt;credential-id&gt;</code>) → pegar <code>{"body":{"client_id":"…","client_secret":"…"}}</code>.</li><li>Ejecutar el workflow <strong><code>&lt;workflow-id&gt;</code></strong> ("Verify: provisionar datos"). ✅ Operativo.</li></ol>
+<ol class="cds--list--ordered"><li class="cds--list__item">En Verify: <strong>Security › API access</strong> → crear API client con entitlements <strong>Manage all users</strong>, <strong>Manage all groups</strong> y <strong>Manage all groups and their members</strong> (<code>manageGroupMembers</code>).</li><li class="cds--list__item">Copiar <code>client_id</code> + <code>client_secret</code> (el secret se muestra 1 sola vez).</li><li class="cds--list__item">En n8n: credencial <strong>"IBM Verify - Client Credentials (SCIM)"</strong> (<code>&lt;credential-id&gt;</code>) → pegar <code>{"body":{"client_id":"…","client_secret":"…"}}</code>.</li><li class="cds--list__item">Ejecutar el workflow <strong><code>&lt;workflow-id&gt;</code></strong> ("Verify: provisionar datos"). ✅ Operativo.</li></ol>
 <p><strong>Administración:</strong> el workflow obtiene token (client_credentials) y hace <code>POST /v2.0/Groups</code> / <code>POST /v2.0/Users</code>. Para vincular miembros usa <code>PATCH /v2.0/Groups/{id}</code> (requiere <code>manageGroupMembers</code>).</p>
 <h2>Operación (IA / PACT)</h2>
-<pre><code>i#provision-scim#verify=users+groups"state=OPERATIVO ^D ?9
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>i#provision-scim#verify=users+groups"state=OPERATIVO ^D ?9
  d2&lt;janus&gt;n8n~scim
  auth: POST /v1.0/endpoint/default/token grant=client_credentials
  ops:[
@@ -34,5 +41,5 @@ th{background:#159957;color:#fff}
    addMembers=PATCH /v2.0/Groups/{id}{Operations:add members[]}  # needs manageGroupMembers
  ]
  ct: scim+json(/v2.0) | json(/v1.0)
- wf: &lt;workflow-id&gt; | cred: &lt;credential-id&gt;</code></pre>
-<div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>
+ wf: &lt;workflow-id&gt; | cred: &lt;credential-id&gt;</code></pre></div></div>
+<div class="jn-foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT) · UI: IBM Carbon Design System</div></main></body></html>

@@ -1,20 +1,27 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Permit-to-Work: acceso temporal con 4-ojos (IBM MaaS360 + Verify)</title><style>
-body{max-width:820px;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1b1f23}
-h1{border-bottom:2px solid #159957;padding-bottom:.3em;color:#159957}
-h2{color:#155799;margin-top:1.8em}
-a{color:#1e6bb8}
-code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
-pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
-pre code{background:none;padding:0}
-img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
-video{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0;display:block}
-table{border-collapse:collapse;width:100%;margin:1em 0}
-th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
-th{background:#159957;color:#fff}
-.nav{margin-bottom:1.5em}.foot{margin-top:3em;color:#6a737d;font-size:.85em;border-top:1px solid #e1e4e8;padding-top:1em}
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Permit-to-Work: acceso temporal con 4-ojos (IBM MaaS360 + Verify)</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@carbon/styles@1.60.0/css/styles.min.css"><style>
+html,body{margin:0;background:var(--cds-background,#fff);color:var(--cds-text-primary,#161616);font-family:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:1rem;line-height:1.5}
+.jn-main{max-width:56rem;margin:0 auto;padding:4rem 1rem 3rem}
+.jn-main h1{font-size:2.5rem;font-weight:300;line-height:1.2;margin:0 0 1.5rem;padding-bottom:.75rem;border-bottom:1px solid var(--cds-border-subtle,#c6c6c6)}
+.jn-main h2{font-size:1.75rem;font-weight:400;margin:2.5rem 0 1rem}
+.jn-main h3{font-size:1.25rem;font-weight:600;margin:2rem 0 .75rem}
+.jn-main p{margin:0 0 1rem;max-width:42rem}
+.jn-main code{font-family:'IBM Plex Mono',Menlo,monospace;font-size:.875em;background:var(--cds-layer-01,#f4f4f4);padding:.1rem .35rem}
+.jn-main .cds--snippet--multi{margin:1rem 0;max-width:none}
+.jn-main .cds--snippet--multi pre{padding:1rem;margin:0;overflow:auto}
+.jn-main .cds--snippet--multi code{background:none;padding:0}
+.jn-main .cds--data-table-container{margin:1.5rem 0;overflow-x:auto;padding:0}
+.jn-main .cds--data-table td,.jn-main .cds--data-table th{padding:.75rem 1rem;vertical-align:top;text-align:left}
+.jn-main img,.jn-main video{max-width:100%;display:block;margin:1rem 0;border:1px solid var(--cds-border-subtle,#e0e0e0)}
+.jn-main ul,.jn-main ol{margin:0 0 1rem;padding-left:1.5rem}
+.jn-main .cds--list__item{margin:.25rem 0}
+.jn-hr{border:0;border-top:1px solid var(--cds-border-subtle,#c6c6c6);margin:2rem 0}
+.jn-crumb{margin-bottom:1.5rem}
+.jn-foot{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--cds-border-subtle,#c6c6c6);color:var(--cds-text-secondary,#525252);font-size:.75rem}
 </style></head>
-<body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
+<body class="cds--g10" style="background:var(--cds-background)">
+<header class="cds--header" role="banner" aria-label="ISV JANUS"><a class="cds--header__name" href="../index.html"><span class="cds--header__name--prefix">IBM&nbsp;</span>Security Verify · JANUS</a></header>
+<main class="jn-main"><nav class="cds--breadcrumb jn-crumb" aria-label="Breadcrumb"><div class="cds--breadcrumb-item"><a class="cds--link" href="../index.html">Índice</a></div></nav>
 <h1>Permit-to-Work: acceso temporal con 4-ojos (IBM MaaS360 + Verify)</h1>
 <p>En planta, arrancar o parar un equipo crítico no lo decide una sola persona. El operador</p>
 <p><strong>solicita</strong> el permiso desde su tablet gestionada; la sala de control y el oficial de</p>
@@ -44,16 +51,16 @@ th{background:#159957;color:#fff}
 <p>MaaS360** (enrolada, *compliant*). El operador necesita <strong>arrancar</strong> el equipo — una acción</p>
 <p>de alto riesgo que, por política HSE, exige <strong>doble aprobación (4-ojos)</strong>.</p>
 <h2>Los cuatro roles (multi-usuario)</h2>
-<table><thead><tr><th>Rol</th><th>Hace</th></tr></thead><tbody><tr><td>👷 <strong>Operador (campo)</strong></td><td>Solicita el permiso temporal desde la tablet MaaS360</td></tr><tr><td>🧠 <strong>Jev (IA)</strong></td><td>Evalúa el riesgo → acción crítica = <strong>doble aprobación requerida</strong></td></tr><tr><td>🎛️ <strong>Sala de control</strong></td><td>Aprueba <strong>1/2</strong> (step-up IBM Verify)</td></tr><tr><td>🦺 <strong>HSE / Seguridad</strong></td><td>Aprueba <strong>2/2</strong> (4-ojos)</td></tr><tr><td>📋 <strong>Auditor</strong></td><td>Ve el *audit trail* completo (quién, qué, cuándo), read-only</td></tr></tbody></table>
+<div class="cds--data-table-container"><div class="cds--data-table-content"><table class="cds--data-table cds--data-table--zebra"><thead><tr><th><div class="cds--table-header-label">Rol</div></th><th><div class="cds--table-header-label">Hace</div></th></tr></thead><tbody><tr><td>👷 <strong>Operador (campo)</strong></td><td>Solicita el permiso temporal desde la tablet MaaS360</td></tr><tr><td>🧠 <strong>Jev (IA)</strong></td><td>Evalúa el riesgo → acción crítica = <strong>doble aprobación requerida</strong></td></tr><tr><td>🎛️ <strong>Sala de control</strong></td><td>Aprueba <strong>1/2</strong> (step-up IBM Verify)</td></tr><tr><td>🦺 <strong>HSE / Seguridad</strong></td><td>Aprueba <strong>2/2</strong> (4-ojos)</td></tr><tr><td>📋 <strong>Auditor</strong></td><td>Ve el *audit trail* completo (quién, qué, cuándo), read-only</td></tr></tbody></table></div></div>
 <p>Al completarse las dos aprobaciones, el operador <strong>ejecuta</strong> la acción con un **token de un</p>
 <p>solo uso** — un replay queda denegado. Cada paso se registra con sello de tiempo y la marca</p>
 <p>*"step-up IBM Verify OK"*.</p>
 <h2>Cómo encaja con el stack</h2>
-<ul><li><strong>MaaS360</strong> aporta el contexto del <strong>endpoint</strong>: el dispositivo está enrolado, compliant,</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item"><strong>MaaS360</strong> aporta el contexto del <strong>endpoint</strong>: el dispositivo está enrolado, compliant,</li></ul>
 <p>  en la zona correcta — base de confianza para permitir (o no) la acción.</p>
-<ul><li><strong>Jev</strong> decide si la acción amerita <strong>doble</strong> aprobación (no molestar en lo trivial).</li><li><strong>IBM Verify</strong> da el <strong>step-up</strong> que re-verifica a cada aprobador en el momento.</li><li>El <strong>token single-use + TTL</strong> y el <strong>audit trail</strong> cierran el loop de gobernanza — el</li></ul>
-<p>  mismo motor del <a href="one-time-action-validator.html">One-Time Action Validator</a>.</p>
-<ul><li><strong>IBM Carbon</strong> da el look enterprise auténtico (UI Shell, Data Table, Tags, botones).</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item"><strong>Jev</strong> decide si la acción amerita <strong>doble</strong> aprobación (no molestar en lo trivial).</li><li class="cds--list__item"><strong>IBM Verify</strong> da el <strong>step-up</strong> que re-verifica a cada aprobador en el momento.</li><li class="cds--list__item">El <strong>token single-use + TTL</strong> y el <strong>audit trail</strong> cierran el loop de gobernanza — el</li></ul>
+<p>  mismo motor del <a class="cds--link" href="one-time-action-validator.html">One-Time Action Validator</a>.</p>
+<ul class="cds--list--unordered"><li class="cds--list__item"><strong>IBM Carbon</strong> da el look enterprise auténtico (UI Shell, Data Table, Tags, botones).</li></ul>
 <h2>¿Dónde queda auditado? (n8n + IBM Verify)</h2>
 <p>La pregunta correcta de todo demo de gobernanza: *¿esto queda registrado en algún lado, o es</p>
 <p>teatro?* Acá se registra en <strong>dos capas reales</strong>:</p>
@@ -72,11 +79,11 @@ th{background:#159957;color:#fff}
 <p>> lo respalda IBM Verify con una aserción FIDO2 real y su id. Dos sistemas, una traza que</p>
 <p>> cierra.</p>
 <h2>Probarlo</h2>
-<p><strong><a href="https://n8n-public.balmacefa.com/webhook/pwt-ui">Abrir el demo Permit-to-Work &rarr;</a></strong> — usá el selector <strong>"Simular rol"</strong></p>
+<p><strong><a class="cds--link" href="https://n8n-public.balmacefa.com/webhook/pwt-ui">Abrir el demo Permit-to-Work &rarr;</a></strong> — usá el selector <strong>"Simular rol"</strong></p>
 <p>arriba a la derecha para recorrer los 4 roles: como Operador pulsá *Solicitar*, cambiá a</p>
 <p>Control y HSE para *Aprobar*, y volvé a Operador para *Ejecutar*.</p>
 <h2>Operación (IA / PACT)</h2>
-<pre><code>i#permit-to-work#maas360+verify=jit-4eyes"state=DEMO ^D ?8
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>i#permit-to-work#maas360+verify=jit-4eyes"state=DEMO ^D ?8
  d2&lt;operador&gt;control+hse~carbon-ui
  device: C-401 (ATEX) via MaaS360 {enrolled, compliant}
  flow: request -&gt; Jev(risk% -&gt; doble aprobacion) -&gt; control aprueba 1/2 -&gt; HSE aprueba 2/2 -&gt; execute single-use -&gt; audit
@@ -85,5 +92,5 @@ th{background:#159957;color:#fff}
  reuse: motor OTAV (nonce+Jev+Verify+audit) ; UI: IBM Carbon ; vista: MaaS360 app
  audit:
   n8n: POST /pwt-event -&gt; DataTable pwt_audit {ts,permitId,event,actor,role,risk,verify} ; GET /pwt-audit
-  verify: approve -&gt; FIDO2 assert REAL (verifiedByVerify:true) -&gt; assertionId guardado en evento ; trazable en tenant activity</code></pre>
-<div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>
+  verify: approve -&gt; FIDO2 assert REAL (verifiedByVerify:true) -&gt; assertionId guardado en evento ; trazable en tenant activity</code></pre></div></div>
+<div class="jn-foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT) · UI: IBM Carbon Design System</div></main></body></html>

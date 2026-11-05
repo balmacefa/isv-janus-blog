@@ -1,20 +1,27 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>One-Time Action Validator: re-verificar al humano en el clic destructivo</title><style>
-body{max-width:820px;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1b1f23}
-h1{border-bottom:2px solid #159957;padding-bottom:.3em;color:#159957}
-h2{color:#155799;margin-top:1.8em}
-a{color:#1e6bb8}
-code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
-pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
-pre code{background:none;padding:0}
-img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
-video{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0;display:block}
-table{border-collapse:collapse;width:100%;margin:1em 0}
-th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
-th{background:#159957;color:#fff}
-.nav{margin-bottom:1.5em}.foot{margin-top:3em;color:#6a737d;font-size:.85em;border-top:1px solid #e1e4e8;padding-top:1em}
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>One-Time Action Validator: re-verificar al humano en el clic destructivo</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@carbon/styles@1.60.0/css/styles.min.css"><style>
+html,body{margin:0;background:var(--cds-background,#fff);color:var(--cds-text-primary,#161616);font-family:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:1rem;line-height:1.5}
+.jn-main{max-width:56rem;margin:0 auto;padding:4rem 1rem 3rem}
+.jn-main h1{font-size:2.5rem;font-weight:300;line-height:1.2;margin:0 0 1.5rem;padding-bottom:.75rem;border-bottom:1px solid var(--cds-border-subtle,#c6c6c6)}
+.jn-main h2{font-size:1.75rem;font-weight:400;margin:2.5rem 0 1rem}
+.jn-main h3{font-size:1.25rem;font-weight:600;margin:2rem 0 .75rem}
+.jn-main p{margin:0 0 1rem;max-width:42rem}
+.jn-main code{font-family:'IBM Plex Mono',Menlo,monospace;font-size:.875em;background:var(--cds-layer-01,#f4f4f4);padding:.1rem .35rem}
+.jn-main .cds--snippet--multi{margin:1rem 0;max-width:none}
+.jn-main .cds--snippet--multi pre{padding:1rem;margin:0;overflow:auto}
+.jn-main .cds--snippet--multi code{background:none;padding:0}
+.jn-main .cds--data-table-container{margin:1.5rem 0;overflow-x:auto;padding:0}
+.jn-main .cds--data-table td,.jn-main .cds--data-table th{padding:.75rem 1rem;vertical-align:top;text-align:left}
+.jn-main img,.jn-main video{max-width:100%;display:block;margin:1rem 0;border:1px solid var(--cds-border-subtle,#e0e0e0)}
+.jn-main ul,.jn-main ol{margin:0 0 1rem;padding-left:1.5rem}
+.jn-main .cds--list__item{margin:.25rem 0}
+.jn-hr{border:0;border-top:1px solid var(--cds-border-subtle,#c6c6c6);margin:2rem 0}
+.jn-crumb{margin-bottom:1.5rem}
+.jn-foot{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--cds-border-subtle,#c6c6c6);color:var(--cds-text-secondary,#525252);font-size:.75rem}
 </style></head>
-<body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
+<body class="cds--g10" style="background:var(--cds-background)">
+<header class="cds--header" role="banner" aria-label="ISV JANUS"><a class="cds--header__name" href="../index.html"><span class="cds--header__name--prefix">IBM&nbsp;</span>Security Verify · JANUS</a></header>
+<main class="jn-main"><nav class="cds--breadcrumb jn-crumb" aria-label="Breadcrumb"><div class="cds--breadcrumb-item"><a class="cds--link" href="../index.html">Índice</a></div></nav>
 <h1>One-Time Action Validator: re-verificar al humano en el clic destructivo</h1>
 <p>El SSO resuelve *quién entra*. Pero una sesión válida no significa que <strong>cada acción</strong></p>
 <p>dentro de ella deba ejecutarse a ciegas. Cuando un operador pulsa <strong>"Borrar asset"</strong> en</p>
@@ -34,7 +41,7 @@ th{background:#159957;color:#fff}
 <p>persistido en una <strong>Data Table</strong>, el enforce de un-solo-uso + TTL, y el **gate de riesgo</p>
 <p>con Jev** corriendo dentro de n8n.</p>
 <p><img alt="UI del demo (estilo Apple) servida por n8n" src="../assets/otav-ui-v2-initial.png?v=56845"></p>
-<p><strong>Demo en vivo: <a href="https://n8n-public.balmacefa.com/webhook/otav-ui">Probar el One-Time Action Validator &rarr;</a></strong> -- autoexplicativo, con</p>
+<p><strong>Demo en vivo: <a class="cds--link" href="https://n8n-public.balmacefa.com/webhook/otav-ui">Probar el One-Time Action Validator &rarr;</a></strong> -- autoexplicativo, con</p>
 <p>indicador de pasos, el juicio de Jev en vivo y boton de reinicio. FIDO2 dispara Windows Hello</p>
 <p>real; OIDC re-autentica en IBM Verify.</p>
 <p><img alt="El ciclo en marcha: Jev evalua el riesgo (99%) y se exige step-up" src="../assets/otav-ui-v2-done.png?v=70731"></p>
@@ -51,12 +58,12 @@ th{background:#159957;color:#fff}
 <p>El daño es inmediato e irreversible. Re-autenticar en el login no ayuda — el riesgo está</p>
 <p><strong>en la acción</strong>, horas después de entrar.</p>
 <h2>El patrón: step-up por transacción + token de un solo uso</h2>
-<pre><code>WP: operador pulsa "Borrar asset Q4-report.pdf"
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>WP: operador pulsa "Borrar asset Q4-report.pdf"
   → NO borra; pide a n8n un nonce {user, action:delete, assetId, exp:60s}
   → IBM Verify valida al HUMANO (step-up)  ──┐
   → n8n marca el nonce CONSUMIDO  ← aprobado  │
   → WP ejecuta el delete UNA sola vez
-  2º clic / replay con el mismo nonce → DENEGADO (single-use)</code></pre>
+  2º clic / replay con el mismo nonce → DENEGADO (single-use)</code></pre></div></div>
 <p>El <strong>nonce</strong> es la clave: válido para *una* acción, *un* asset, *una* vez, y caduca en</p>
 <p>segundos. Aunque alguien capture la aprobación, no la puede reusar.</p>
 <h2>Tres mecanismos de validación</h2>
@@ -78,7 +85,7 @@ th{background:#159957;color:#fff}
 <h2>Jev decide CUÁNDO pedir step-up (gate de riesgo)</h2>
 <p>Pedir validación en *cada* clic mata la UX. Aquí entra <strong>Jev</strong> (juicios calibrados): evalúa</p>
 <p>el riesgo de la acción y decide si amerita step-up. *Jev juzga, el código decide.*</p>
-<table><thead><tr><th>Asset</th><th>Jev <code>¿requiere step-up?</code></th><th><code>riesgo</code></th><th>Resultado</th></tr></thead><tbody><tr><td><code>Q4-report.pdf</code> (reporte financiero, producción, 1.2k descargas)</td><td><strong>0.95</strong></td><td><strong>0.99</strong></td><td>step-up obligatorio</td></tr><tr><td><code>borrador-temp.png</code> (sandbox, baja criticidad, 0 descargas)</td><td><strong>0.32</strong></td><td><strong>0.00</strong></td><td>pasa silencioso</td></tr></tbody></table>
+<div class="cds--data-table-container"><div class="cds--data-table-content"><table class="cds--data-table cds--data-table--zebra"><thead><tr><th><div class="cds--table-header-label">Asset</div></th><th><div class="cds--table-header-label">Jev <code>¿requiere step-up?</code></div></th><th><div class="cds--table-header-label"><code>riesgo</code></div></th><th><div class="cds--table-header-label">Resultado</div></th></tr></thead><tbody><tr><td><code>Q4-report.pdf</code> (reporte financiero, producción, 1.2k descargas)</td><td><strong>0.95</strong></td><td><strong>0.99</strong></td><td>step-up obligatorio</td></tr><tr><td><code>borrador-temp.png</code> (sandbox, baja criticidad, 0 descargas)</td><td><strong>0.32</strong></td><td><strong>0.00</strong></td><td>pasa silencioso</td></tr></tbody></table></div></div>
 <p>*Numeros medidos EN VIVO contra el gate Jev dentro de n8n (state estructurado con entorno/criticidad/descargas).*</p>
 <p>El operador solo es interrumpido cuando de verdad importa. (Mismo motor de riesgo que el</p>
 <p>caso *SoD Guardian* — se reusa.)</p>
@@ -91,7 +98,7 @@ th{background:#159957;color:#fff}
 <p>El demo corre <strong>live en n8n</strong> (core verde) y la version endurecida para produccion esta</p>
 <p><strong>implementada completa</strong> en una referencia de ~825 lineas (Node nativo, sin deps) con todos</p>
 <p>los controles de seguridad. Consolidado con subworkers (implementacion + threat model).</p>
-<table><thead><tr><th>Capacidad</th><th>Demo live (n8n)</th><th>Referencia produccion</th></tr></thead><tbody><tr><td>Nonce single-use + TTL + purga</td><td>OK (cron n8n)</td><td>OK</td></tr><tr><td>Round-trip OIDC real a Verify</td><td>OK (<code>prompt=login</code>)</td><td>OK</td></tr><tr><td>Validar <code>acr</code>/<code>auth_time</code> (prueba del re-auth)</td><td>parcial</td><td>OK (<code>code</code>->token, <code>auth_time&lt;120s</code>)</td></tr><tr><td><code>state</code> firmado (HMAC) anti-forja</td><td>pendiente</td><td>OK</td></tr><tr><td>FIDO2 / WebAuthn server-side</td><td>local/virtual</td><td>OK</td></tr><tr><td>IBM Verify push</td><td>mock</td><td>OK (stub con API real)</td></tr><tr><td>Gate de riesgo Jev (discrimina 0.95 vs 0.32)</td><td>OK</td><td>hook</td></tr><tr><td>Rate-limit + log de auditoria</td><td>audit OK</td><td>OK ambos</td></tr><tr><td>Borrado real de la accion</td><td>simulado (destructivo)</td><td>OK (DELETE configurable)</td></tr></tbody></table>
+<div class="cds--data-table-container"><div class="cds--data-table-content"><table class="cds--data-table cds--data-table--zebra"><thead><tr><th><div class="cds--table-header-label">Capacidad</div></th><th><div class="cds--table-header-label">Demo live (n8n)</div></th><th><div class="cds--table-header-label">Referencia produccion</div></th></tr></thead><tbody><tr><td>Nonce single-use + TTL + purga</td><td>OK (cron n8n)</td><td>OK</td></tr><tr><td>Round-trip OIDC real a Verify</td><td>OK (<code>prompt=login</code>)</td><td>OK</td></tr><tr><td>Validar <code>acr</code>/<code>auth_time</code> (prueba del re-auth)</td><td>parcial</td><td>OK (<code>code</code>->token, <code>auth_time&lt;120s</code>)</td></tr><tr><td><code>state</code> firmado (HMAC) anti-forja</td><td>pendiente</td><td>OK</td></tr><tr><td>FIDO2 / WebAuthn server-side</td><td>local/virtual</td><td>OK</td></tr><tr><td>IBM Verify push</td><td>mock</td><td>OK (stub con API real)</td></tr><tr><td>Gate de riesgo Jev (discrimina 0.95 vs 0.32)</td><td>OK</td><td>hook</td></tr><tr><td>Rate-limit + log de auditoria</td><td>audit OK</td><td>OK ambos</td></tr><tr><td>Borrado real de la accion</td><td>simulado (destructivo)</td><td>OK (DELETE configurable)</td></tr></tbody></table></div></div>
 <p><strong>Threat model revisado:</strong> replay, forja de <code>state</code>, CSRF en el callback, callback sin validar</p>
 <p>re-auth, race en el consume, DoS de mint, nonce en logs - cada vector con su contramedida en la</p>
 <p>referencia (HMAC en el <code>state</code>, consume atomico CAS, validacion de firma JWT + <code>acr</code>/<code>auth_time</code>,</p>
@@ -99,17 +106,17 @@ th{background:#159957;color:#fff}
 <h2>Reproducir el lab</h2>
 <p>Demo autocontenida, <strong>sin dependencias</strong> (<code>fetch</code>/<code>http</code> nativos). Levanta el servidor y</p>
 <p>abrí la página:</p>
-<pre><code># en vivo, UI servida por n8n (backend real):
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code># en vivo, UI servida por n8n (backend real):
 https://n8n.example.com/webhook/otav-ui
 
 # o local autocontenido (sin deps):
-node otav-demo.mjs        # http://localhost:7799</code></pre>
-<ol><li>Elegí el mecanismo (OIDC / FIDO2 / Push) y pulsá <strong>Borrar asset</strong>.</li><li>Observá: nonce acuñado → validación → asset borrado → <strong>replay denegado</strong>.</li><li>El nonce es single-use y caduca a los 60s (<code>/consume</code> rechaza <code>ya-usado</code>/<code>expirado</code>).</li></ol>
+node otav-demo.mjs        # http://localhost:7799</code></pre></div></div>
+<ol class="cds--list--ordered"><li class="cds--list__item">Elegí el mecanismo (OIDC / FIDO2 / Push) y pulsá <strong>Borrar asset</strong>.</li><li class="cds--list__item">Observá: nonce acuñado → validación → asset borrado → <strong>replay denegado</strong>.</li><li class="cds--list__item">El nonce es single-use y caduca a los 60s (<code>/consume</code> rechaza <code>ya-usado</code>/<code>expirado</code>).</li></ol>
 <p>> <strong>Nota de captura:</strong> FIDO2 se automatiza con un *virtual authenticator* vía CDP</p>
 <p>> (<code>WebAuthn.addVirtualAuthenticator</code>) para que la passkey complete sin Touch ID real —</p>
 <p>> útil para grabar el demo headless (ver skill <code>demo-media</code>).</p>
 <h2>El código completo (<code>otav-demo.mjs</code>)</h2>
-<pre><code>import { createServer } from "node:http";
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>import { createServer } from "node:http";
 const PORT = 7799;
 const TENANT = "https://tenant.verify.ibm.com";
 const WP_CLIENT = "isv-wp-oidc"; // el real vive en el OIDC app de WordPress
@@ -155,17 +162,17 @@ createServer(async (req, res) =&gt; {
   if (u.pathname === "/push-approve") { await new Promise(r=&gt;setTimeout(r,1600)); return json(res, { approved:true }); }
   if (u.pathname === "/reset") { ASSET.exists = true; return json(res, { ok:true }); }
   res.writeHead(404); res.end("nope");
-}).listen(PORT, () =&gt; console.log("OTAV demo en http://localhost:" + PORT));</code></pre>
+}).listen(PORT, () =&gt; console.log("OTAV demo en http://localhost:" + PORT));</code></pre></div></div>
 <p>*(La página <code>PAGE</code> — UI de WordPress + el JS que dispara <code>/mint</code> → step-up elegido →</p>
 <p><code>/consume</code> → <code>/delete</code>, incluido el challenge WebAuthn para FIDO2 — va embebida en el mismo</p>
 <p>archivo. Es un único <code>.mjs</code> de ~100 líneas.)*</p>
 <h2>Operación (IA / PACT)</h2>
-<pre><code>i#otav#wp-action-&gt;verify=stepup+single-use"state=DEMO-OK ^D ?9
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>i#otav#wp-action-&gt;verify=stepup+single-use"state=DEMO-OK ^D ?9
  d2&lt;wp&gt;verify~oidc|fido2|push
  flow: clic-destructivo -&gt; /mint nonce{action,assetId,exp=60s} -&gt; STEPUP -&gt; /consume(once) -&gt; /delete(1x)
  stepup:[ oidc:authorize?prompt=login&amp;max_age=0 | fido2:navigator.credentials.get(challenge=nonce) | push:verify-authenticator-tx ]
  nonce: single-use, TTL 60s, rechaza {desconocido,ya-usado,expirado} ; replay -&gt; DENEGADO
  riskgate: Jev noul '¿requiere stepup?' -&gt; prod=0.96 / trivial=0.07 (no molestar en acciones triviales)
  repro: node otav-demo.mjs @ :7799 ; FIDO2 headless = CDP WebAuthn.addVirtualAuthenticator
- proof: otav-live.mp4 (clic-&gt;passkey-&gt;borrado-&gt;replay denegado) + 3 screenshots por mecanismo</code></pre>
-<div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>
+ proof: otav-live.mp4 (clic-&gt;passkey-&gt;borrado-&gt;replay denegado) + 3 screenshots por mecanismo</code></pre></div></div>
+<div class="jn-foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT) · UI: IBM Carbon Design System</div></main></body></html>

@@ -1,22 +1,29 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>One-Time Action Validator · Parte 2: cómo cruzar los dos muros (WebAuthn + red)</title><style>
-body{max-width:820px;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1b1f23}
-h1{border-bottom:2px solid #159957;padding-bottom:.3em;color:#159957}
-h2{color:#155799;margin-top:1.8em}
-a{color:#1e6bb8}
-code{background:#f3f6fa;padding:.1em .3em;border-radius:4px;font-size:.9em}
-pre{background:#f3f6fa;padding:1rem;border-radius:6px;overflow:auto;border-left:4px solid #159957}
-pre code{background:none;padding:0}
-img{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0}
-video{max-width:100%;border:1px solid #e1e4e8;border-radius:6px;margin:.5em 0;display:block}
-table{border-collapse:collapse;width:100%;margin:1em 0}
-th,td{border:1px solid #e1e4e8;padding:.5em .8em;text-align:left}
-th{background:#159957;color:#fff}
-.nav{margin-bottom:1.5em}.foot{margin-top:3em;color:#6a737d;font-size:.85em;border-top:1px solid #e1e4e8;padding-top:1em}
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>One-Time Action Validator · Parte 2: cómo cruzar los dos muros (WebAuthn + red)</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@carbon/styles@1.60.0/css/styles.min.css"><style>
+html,body{margin:0;background:var(--cds-background,#fff);color:var(--cds-text-primary,#161616);font-family:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:1rem;line-height:1.5}
+.jn-main{max-width:56rem;margin:0 auto;padding:4rem 1rem 3rem}
+.jn-main h1{font-size:2.5rem;font-weight:300;line-height:1.2;margin:0 0 1.5rem;padding-bottom:.75rem;border-bottom:1px solid var(--cds-border-subtle,#c6c6c6)}
+.jn-main h2{font-size:1.75rem;font-weight:400;margin:2.5rem 0 1rem}
+.jn-main h3{font-size:1.25rem;font-weight:600;margin:2rem 0 .75rem}
+.jn-main p{margin:0 0 1rem;max-width:42rem}
+.jn-main code{font-family:'IBM Plex Mono',Menlo,monospace;font-size:.875em;background:var(--cds-layer-01,#f4f4f4);padding:.1rem .35rem}
+.jn-main .cds--snippet--multi{margin:1rem 0;max-width:none}
+.jn-main .cds--snippet--multi pre{padding:1rem;margin:0;overflow:auto}
+.jn-main .cds--snippet--multi code{background:none;padding:0}
+.jn-main .cds--data-table-container{margin:1.5rem 0;overflow-x:auto;padding:0}
+.jn-main .cds--data-table td,.jn-main .cds--data-table th{padding:.75rem 1rem;vertical-align:top;text-align:left}
+.jn-main img,.jn-main video{max-width:100%;display:block;margin:1rem 0;border:1px solid var(--cds-border-subtle,#e0e0e0)}
+.jn-main ul,.jn-main ol{margin:0 0 1rem;padding-left:1.5rem}
+.jn-main .cds--list__item{margin:.25rem 0}
+.jn-hr{border:0;border-top:1px solid var(--cds-border-subtle,#c6c6c6);margin:2rem 0}
+.jn-crumb{margin-bottom:1.5rem}
+.jn-foot{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--cds-border-subtle,#c6c6c6);color:var(--cds-text-secondary,#525252);font-size:.75rem}
 </style></head>
-<body><div class="nav"><a href="../index.html">&larr; Volver al índice</a></div>
+<body class="cds--g10" style="background:var(--cds-background)">
+<header class="cds--header" role="banner" aria-label="ISV JANUS"><a class="cds--header__name" href="../index.html"><span class="cds--header__name--prefix">IBM&nbsp;</span>Security Verify · JANUS</a></header>
+<main class="jn-main"><nav class="cds--breadcrumb jn-crumb" aria-label="Breadcrumb"><div class="cds--breadcrumb-item"><a class="cds--link" href="../index.html">Índice</a></div></nav>
 <h1>One-Time Action Validator · Parte 2: cómo cruzar los dos muros (WebAuthn + red)</h1>
-<p>> La <a href="one-time-action-validator.html">Parte 1</a> mostró el demo funcionando. Esta Parte 2 es el</p>
+<p>> La <a class="cds--link" href="one-time-action-validator.html">Parte 1</a> mostró el demo funcionando. Esta Parte 2 es el</p>
 <p>> *making-of*: cómo logramos una **aserción FIDO2 REAL contra IBM Verify, pública y</p>
 <p>> server-side<strong>, los dos muros que nos frenaron y el conocimiento para que </strong>vos reproduzcas</p>
 <p>> el lab o resuelvas errores parecidos** sin sufrir lo que sufrimos.</p>
@@ -24,10 +31,10 @@ th{background:#159957;color:#fff}
 <h2>El problema de fondo: un catch-22</h2>
 <p>Queríamos que <strong>cualquier visitante</strong> disparara una aserción FIDO2 que **IBM Verify</p>
 <p>verificara de verdad**. Chocamos con dos muros que, juntos, parecían imposibles:</p>
-<table><thead><tr><th></th><th>¿Alcanza Verify?</th><th>¿Puede hacer WebAuthn del RP de Verify?</th></tr></thead><tbody><tr><td><strong>Navegador del visitante</strong> (IP residencial)</td><td>✅ sí</td><td>❌ no — WebAuthn ata el <code>origin</code>, y la página está en *nuestro* dominio, no en el del tenant</td></tr><tr><td><strong>Nuestro servidor</strong> (n8n/cloud)</td><td>❌ no (ver Muro 2)</td><td>✅ sí — un autenticador por software firma lo que sea</td></tr></tbody></table>
+<div class="cds--data-table-container"><div class="cds--data-table-content"><table class="cds--data-table cds--data-table--zebra"><thead><tr><th><div class="cds--table-header-label"></div></th><th><div class="cds--table-header-label">¿Alcanza Verify?</div></th><th><div class="cds--table-header-label">¿Puede hacer WebAuthn del RP de Verify?</div></th></tr></thead><tbody><tr><td><strong>Navegador del visitante</strong> (IP residencial)</td><td>✅ sí</td><td>❌ no — WebAuthn ata el <code>origin</code>, y la página está en *nuestro* dominio, no en el del tenant</td></tr><tr><td><strong>Nuestro servidor</strong> (n8n/cloud)</td><td>❌ no (ver Muro 2)</td><td>✅ sí — un autenticador por software firma lo que sea</td></tr></tbody></table></div></div>
 <p>Ninguno de los dos podía hacer <strong>las dos cosas</strong>. Resolverlo requirió atacar cada muro por</p>
 <p>separado.</p>
-<hr>
+<hr class="jn-hr">
 <h2>Muro 1 — Un autenticador WebAuthn por software que IBM Verify acepte</h2>
 <p>WebAuthn normalmente lo ejecuta un navegador con hardware (Touch ID / Windows Hello). Pero</p>
 <p>el navegador ata el <code>origin</code> al Relying Party (RP). El RP FIDO2 del tenant solo acepta su</p>
@@ -35,49 +42,49 @@ th{background:#159957;color:#fff}
 <p>puede hacer WebAuthn contra él<strong>. La salida: un </strong>autenticador por software** que fija el</p>
 <p><code>origin</code> él mismo y firma — no está atado a la política de origin del navegador.</p>
 <h3>La API FIDO2 de IBM Verify (lo que tardamos en mapear)</h3>
-<pre><code>RP:  GET  /config/v2.0/factors/fido2/relyingparties           -&gt; { id:&lt;fido2-rp-id&gt;, rpId, origins }
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>RP:  GET  /config/v2.0/factors/fido2/relyingparties           -&gt; { id:&lt;fido2-rp-id&gt;, rpId, origins }
 reg: POST /v2.0/factors/fido2/relyingparties/&lt;fido2-rp-id&gt;/attestation/options  (body: {userId})
      POST /v2.0/factors/fido2/relyingparties/&lt;fido2-rp-id&gt;/attestation/result
 assert: POST .../assertion/options  (body: {userId})
-        POST .../assertion/result</code></pre>
+        POST .../assertion/result</code></pre></div></div>
 <p><strong>Gotchas que nos costaron sangre:</strong></p>
-<ul><li><code>attestation/options</code> <strong>exige <code>userId</code></strong> (el id SCIM del usuario, no "me").</li><li>El body de <code>attestation/result</code> <strong>NO lleva <code>userId</code></strong> (va atado al challenge/sesión). Mandarlo da <code>CSIBN0005E: request body is invalid: userId</code>.</li><li>El token server-side (client_credentials) da <strong>403</strong> en estos endpoints hasta que al API client le agregás el entitlement <strong><code>authnAnyUser</code></strong> ("Authenticate any user"). Ese fue el desbloqueo del token.</li><li>El <code>userHandle</code> de la aserción = el <code>user.id</code> que devolvió <code>options</code> (base64url).</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item"><code>attestation/options</code> <strong>exige <code>userId</code></strong> (el id SCIM del usuario, no "me").</li><li class="cds--list__item">El body de <code>attestation/result</code> <strong>NO lleva <code>userId</code></strong> (va atado al challenge/sesión). Mandarlo da <code>CSIBN0005E: request body is invalid: userId</code>.</li><li class="cds--list__item">El token server-side (client_credentials) da <strong>403</strong> en estos endpoints hasta que al API client le agregás el entitlement <strong><code>authnAnyUser</code></strong> ("Authenticate any user"). Ese fue el desbloqueo del token.</li><li class="cds--list__item">El <code>userHandle</code> de la aserción = el <code>user.id</code> que devolvió <code>options</code> (base64url).</li></ul>
 <h3>Construir la attestation (registro) — CBOR a mano</h3>
 <p>El <code>attestationObject</code> es CBOR. Sin librerías, implementamos el subconjunto necesario:</p>
-<pre><code>// authData = rpIdHash(32) + flags(1) + signCount(4) + attestedCredentialData
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>// authData = rpIdHash(32) + flags(1) + signCount(4) + attestedCredentialData
 // flags: 0x45 en registro (UP|UV|AT), 0x05 en aserción (UP|UV, sin AT)
 // attestedCredentialData = aaguid(16, ceros) + credIdLen(2) + credId + COSEpublicKey
 // COSE P-256 (CBOR map): {1:2(EC2), 3:-7(ES256), -1:1(P-256), -2:x(32), -3:y(32)}
 // attestationObject (CBOR map): {fmt:"none", attStmt:{}, authData:&lt;bytes&gt;}
-// clientDataJSON: {type:"webauthn.create", challenge:&lt;b64url&gt;, origin:&lt;tenant origin&gt;, crossOrigin:false}</code></pre>
+// clientDataJSON: {type:"webauthn.create", challenge:&lt;b64url&gt;, origin:&lt;tenant origin&gt;, crossOrigin:false}</code></pre></div></div>
 <p>Con <code>fmt:"none"</code> <strong>no hace falta firma de attestation</strong> (simplifica mucho). Resultado:</p>
 <p><code>attestation/result</code> devolvió <strong>200</strong> → passkey enrolada en el tenant. 🎉</p>
 <h3>Construir la aserción (login) — más simple, SIN CBOR</h3>
 <p>La aserción no necesita CBOR: <code>authenticatorData</code> son bytes planos y la firma es ECDSA</p>
 <p><strong>DER</strong> sobre <code>authData ‖ sha256(clientDataJSON)</code>. En Node, <code>crypto.createSign('SHA256')</code></p>
 <p>sobre una clave EC <strong>ya devuelve DER</strong> (no hace falta convertir de P1363):</p>
-<pre><code>const authData = Buffer.concat([rpIdHash, Buffer.from([5,0,0,0,0])]);      // UP|UV, signCount 0
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>const authData = Buffer.concat([rpIdHash, Buffer.from([5,0,0,0,0])]);      // UP|UV, signCount 0
 const cdj = Buffer.from(JSON.stringify({type:"webauthn.get", challenge, origin:"https://tenant.verify.ibm.com", crossOrigin:false}));
 const signed = Buffer.concat([authData, crypto.createHash("sha256").update(cdj).digest()]);
 const der = crypto.createSign("SHA256").update(signed).sign(PRIV);          // DER directo
 const body = { type:"public-key", id:CREDID, rawId:CREDID, response:{ authenticatorData:b64u(authData), clientDataJSON:b64u(cdj), signature:b64u(der), userHandle:UH } };
-// POST assertion/result -&gt; 200 = IBM Verify VERIFICÓ la firma</code></pre>
+// POST assertion/result -&gt; 200 = IBM Verify VERIFICÓ la firma</code></pre></div></div>
 <p><code>assertion/result</code> → <strong>200</strong>. Verify verificó una aserción de nuestro autenticador por</p>
 <p>software. <strong>Muro 1 cruzado.</strong> El origin lo pusimos nosotros (= el del tenant), así que la</p>
 <p>clave no está atada a ningún navegador.</p>
-<hr>
+<hr class="jn-hr">
 <h2>Muro 2 — La odisea de red (el contenedor no alcanzaba Verify)</h2>
 <p>Con el autenticador listo, lo movimos a un endpoint n8n público… y <strong>timeout</strong>. El</p>
 <p>contenedor n8n (en un VPS cloud) <strong>no alcanzaba el tenant</strong>, aunque sí llegaba a</p>
 <p><code>www.ibm.com</code> y a otras APIs. Descartamos de a uno:</p>
-<ul><li><strong>¿DNS?</strong> El Code node de n8n tiene <code>require('dns')</code> <strong>bloqueado</strong>; no se puede forzar</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item"><strong>¿DNS?</strong> El Code node de n8n tiene <code>require('dns')</code> <strong>bloqueado</strong>; no se puede forzar</li></ul>
 <p>  IPv4 ahí. Pero <code>www.ibm.com</code> resolvía bien → no era DNS general.</p>
-<ul><li><strong>¿WAF de Cloudflare?</strong> No: el WAF es tráfico <strong>entrante</strong> (visitantes→n8n), no afecta la</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item"><strong>¿WAF de Cloudflare?</strong> No: el WAF es tráfico <strong>entrante</strong> (visitantes→n8n), no afecta la</li></ul>
 <p>  <strong>salida</strong> del contenedor.</p>
-<ul><li><strong>Diagnóstico con reachability real</strong> (desde el propio contenedor, via <code>this.helpers.httpRequest</code>):</li></ul>
-<pre><code>api.typesafe.ai      -&gt; HTTP 404  (control: egress funciona)
+<ul class="cds--list--unordered"><li class="cds--list__item"><strong>Diagnóstico con reachability real</strong> (desde el propio contenedor, via <code>this.helpers.httpRequest</code>):</li></ul>
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>api.typesafe.ai      -&gt; HTTP 404  (control: egress funciona)
 www.ibm.com          -&gt; HTTP 200  (IBM alcanzable)
-tenant.verify.ibm.com-&gt; timeout   (el tenant NO)</code></pre>
+tenant.verify.ibm.com-&gt; timeout   (el tenant NO)</code></pre></div></div>
 <p>Específico del host del tenant. Montamos un <strong>Cloudflare Worker</strong> como proxy (el contenedor</p>
 <p>sí alcanza Cloudflare, y CF tiene red global)… y <strong>520</strong>. El Worker corría (header</p>
 <p><code>x-proxied-by</code> presente), el <code>cf-ray</code> mostraba colo <strong>FRA (Frankfurt)</strong>, y el body del 520</p>
@@ -86,7 +93,7 @@ tenant.verify.ibm.com-&gt; timeout   (el tenant NO)</code></pre>
 <h3>El test decisivo: ¿es cloud o es región?</h3>
 <p>Forzamos un <strong>Durable Object con <code>locationHint:"enam"</code></strong> (Norteamérica este) y le pedimos que</p>
 <p>reportara su colo + probara Verify:</p>
-<pre><code>{ "doColo": "ORD", "verifyStatus": "HTTP 400" }</code></pre>
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>{ "doColo": "ORD", "verifyStatus": "HTTP 400" }</code></pre></div></div>
 <p><strong>ORD = Chicago, EE.UU. → Verify RESPONDIÓ (400, no timeout).</strong> La bomba: **no era bloqueo de</p>
 <p>cloud — era REGIONAL.** Europa (FRA / el VPS) no rutea al edge Akamai del tenant; EE.UU. sí.</p>
 <h3>El segundo truco: headers limpios</h3>
@@ -96,7 +103,7 @@ tenant.verify.ibm.com-&gt; timeout   (el tenant NO)</code></pre>
 <p>conexión al ver headers de proxy/cloud.<strong> Fix: reenviar </strong>solo** <code>authorization</code> +</p>
 <p><code>content-type</code> (+ <code>accept</code>).</p>
 <h3>El Worker final (relay anclado en EE.UU. + headers limpios)</h3>
-<pre><code>const TENANT = "https://tenant.verify.ibm.com";
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>const TENANT = "https://tenant.verify.ibm.com";
 export class Relay {              // Durable Object -&gt; egress desde su región
   async fetch(req) {
     const target = req.headers.get("x-target");
@@ -118,42 +125,42 @@ export default {
     const body = ["GET","HEAD"].includes(req.method) ? undefined : await req.arrayBuffer();
     return await stub.fetch("https://relay.internal/", { method:req.method, headers:h, body });
   },
-};</code></pre>
+};</code></pre></div></div>
 <p><code>wrangler.toml</code> necesita el binding + la migración del DO:</p>
-<pre><code>[[durable_objects.bindings]]
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>[[durable_objects.bindings]]
 name = "RELAY"
 class_name = "Relay"
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["Relay"]</code></pre>
+new_sqlite_classes = ["Relay"]</code></pre></div></div>
 <p>Apuntamos el Code node de n8n al Worker (<code>https://&lt;worker&gt;.workers.dev/verify</code> + header</p>
 <p><code>x-otav-proxy</code>), y… <strong><code>verifiedByVerify:true</code></strong>. <strong>Muro 2 cruzado.</strong> El camino final:</p>
-<pre><code>visitante → n8n (Europa) → CF Worker → Durable Object (ORD/EE.UU., headers limpios) → IBM Verify ✓</code></pre>
-<hr>
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>visitante → n8n (Europa) → CF Worker → Durable Object (ORD/EE.UU., headers limpios) → IBM Verify ✓</code></pre></div></div>
+<hr class="jn-hr">
 <h2>Cheat-sheet de gotchas (para que no sufras)</h2>
 <p><strong>n8n Code node (sandbox):</strong></p>
-<ul><li><code>fetch</code> <strong>no existe</strong> → usá <code>this.helpers.httpRequest({...})</code>.</li><li><code>require('dns')</code> (y otros módulos) <strong>bloqueados</strong>; <code>crypto</code> (node) <strong>sí</strong> funciona.</li><li><code>respondToWebhook</code>: el status code va en <strong><code>options.responseCode</code></strong>, no top-level.</li><li>Rate-limit por IP: <code>$getWorkflowStaticData('global')</code> persiste entre ejecuciones; la IP real detrás de Cloudflare está en <code>cf-connecting-ip</code>.</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item"><code>fetch</code> <strong>no existe</strong> → usá <code>this.helpers.httpRequest({...})</code>.</li><li class="cds--list__item"><code>require('dns')</code> (y otros módulos) <strong>bloqueados</strong>; <code>crypto</code> (node) <strong>sí</strong> funciona.</li><li class="cds--list__item"><code>respondToWebhook</code>: el status code va en <strong><code>options.responseCode</code></strong>, no top-level.</li><li class="cds--list__item">Rate-limit por IP: <code>$getWorkflowStaticData('global')</code> persiste entre ejecuciones; la IP real detrás de Cloudflare está en <code>cf-connecting-ip</code>.</li></ul>
 <p><strong>Inyectar un secreto en n8n sin que aparezca en logs/historial:</strong> poné un placeholder</p>
 <p><code>@@SEC@@</code> en el <code>jsCode</code>, hacé <code>GET</code> del workflow por la API de n8n, reemplazá el placeholder</p>
 <p>con el secreto (leído de tu gestor) y <code>PUT</code> el workflow — el valor solo viaja server-side.</p>
 <p>(Ojo: el <code>PUT</code> desactiva el workflow → reactivalo.)</p>
 <p><strong>Cloudflare Workers:</strong></p>
-<ul><li>Un Worker corre en el <strong>colo cercano al cliente</strong>. Si ese colo no alcanza tu origen, usá</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item">Un Worker corre en el <strong>colo cercano al cliente</strong>. Si ese colo no alcanza tu origen, usá</li></ul>
 <p>  un <strong>Durable Object con <code>locationHint</code></strong> para fijar la región del egress.</p>
-<ul><li>Body <code>"error code: 520"</code> = la <code>fetch()</code> del Worker <strong>no obtuvo respuesta válida</strong> del origen.</li><li>Al proxyear, <strong>no reenvíes <code>cf-connecting-ip</code>/<code>x-forwarded-for</code></strong> si el origen tiene</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item">Body <code>"error code: 520"</code> = la <code>fetch()</code> del Worker <strong>no obtuvo respuesta válida</strong> del origen.</li><li class="cds--list__item">Al proxyear, <strong>no reenvíes <code>cf-connecting-ip</code>/<code>x-forwarded-for</code></strong> si el origen tiene</li></ul>
 <p>  bot-defense (Akamai): reenviá solo lo esencial.</p>
-<ul><li>Diagnóstico de colo: <code>fetch('https://cloudflare.com/cdn-cgi/trace')</code> → <code>colo=XXX</code>.</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item">Diagnóstico de colo: <code>fetch('https://cloudflare.com/cdn-cgi/trace')</code> → <code>colo=XXX</code>.</li></ul>
 <p><strong>WebAuthn / IBM Verify:</strong></p>
-<ul><li>El <code>origin</code> lo controla el autenticador por software (no estás atado al navegador).</li><li><code>fmt:"none"</code> evita la firma de attestation.</li><li><code>crypto.createSign</code> sobre clave EC devuelve firma <strong>DER</strong> (lista para <code>assertion/result</code>).</li><li>Entitlement <strong><code>authnAnyUser</code></strong> habilita los endpoints de factores para el token server-side.</li></ul>
+<ul class="cds--list--unordered"><li class="cds--list__item">El <code>origin</code> lo controla el autenticador por software (no estás atado al navegador).</li><li class="cds--list__item"><code>fmt:"none"</code> evita la firma de attestation.</li><li class="cds--list__item"><code>crypto.createSign</code> sobre clave EC devuelve firma <strong>DER</strong> (lista para <code>assertion/result</code>).</li><li class="cds--list__item">Entitlement <strong><code>authnAnyUser</code></strong> habilita los endpoints de factores para el token server-side.</li></ul>
 <h2>Reproducir el lab</h2>
-<ol><li><strong>Autenticador:</strong> portá el autenticador por software (CBOR/COSE/authData/DER) — Node nativo, sin deps. Registrá una credencial fija para un usuario demo (<code>attestation/options</code>→build→<code>result</code>).</li><li><strong>Token:</strong> agregá <code>authnAnyUser</code> al API client → el token client_credentials ya llama los endpoints FIDO2.</li><li><strong>Relay CF:</strong> deploy del Worker + Durable Object con <code>locationHint</code> en la región que SÍ alcanza tu tenant; reenviá headers limpios; protegé con un <code>PROXY_SECRET</code>.</li><li><strong>n8n:</strong> Code node que hace token→<code>assertion/options</code>→firma con la clave fija→<code>assertion/result</code>, apuntando al Worker. Inyectá el secreto con el truco del placeholder.</li><li><strong>UI:</strong> botón que llama al endpoint y, si <code>verifiedByVerify</code>, consume el nonce single-use.</li></ol>
+<ol class="cds--list--ordered"><li class="cds--list__item"><strong>Autenticador:</strong> portá el autenticador por software (CBOR/COSE/authData/DER) — Node nativo, sin deps. Registrá una credencial fija para un usuario demo (<code>attestation/options</code>→build→<code>result</code>).</li><li class="cds--list__item"><strong>Token:</strong> agregá <code>authnAnyUser</code> al API client → el token client_credentials ya llama los endpoints FIDO2.</li><li class="cds--list__item"><strong>Relay CF:</strong> deploy del Worker + Durable Object con <code>locationHint</code> en la región que SÍ alcanza tu tenant; reenviá headers limpios; protegé con un <code>PROXY_SECRET</code>.</li><li class="cds--list__item"><strong>n8n:</strong> Code node que hace token→<code>assertion/options</code>→firma con la clave fija→<code>assertion/result</code>, apuntando al Worker. Inyectá el secreto con el truco del placeholder.</li><li class="cds--list__item"><strong>UI:</strong> botón que llama al endpoint y, si <code>verifiedByVerify</code>, consume el nonce single-use.</li></ol>
 <h2>Operación (IA / PACT)</h2>
-<pre><code>i#otav-real-fido2#public-&gt;verify=assert"state=LIVE ^D ?9
+<div class="cds--snippet cds--snippet--multi"><div class="cds--snippet-container" tabindex="0"><pre><code>i#otav-real-fido2#public-&gt;verify=assert"state=LIVE ^D ?9
  d2&lt;n8n-eu&gt;cf-worker&gt;do-enam&gt;verify
  wall1: software-webauthn-authenticator{cbor:none, authData, cose-p256, der-sign} -&gt; REG+ASSERT 200
  wall2: tenant unreachable from EU -&gt; DO locationHint=enam (US) + clean-headers(auth,content-type) -&gt; 200
  rootcause: regional(EU!-&gt;akamai-edge) + akamai-botdefense(drops cf-connecting-ip/x-forwarded-for)
  unlock: apiclient+=authnAnyUser ; secret-inject=@@placeholder@@+API-PUT
  gotchas: n8n-code{no-fetch-&gt;httpRequest, no-dns, crypto-ok, responseCode-in-options}; cf{colo=client-side, "error code: 520"=no-origin-response}
- proof: public UI -&gt; verifiedByVerify:true (RP tenant, software passkey, server-side)</code></pre>
-<div class="foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT)</div></body></html>
+ proof: public UI -&gt; verifiedByVerify:true (RP tenant, software passkey, server-side)</code></pre></div></div>
+<div class="jn-foot">Generado por Pike/JANUS · blog operativo doble-capa (humano + PACT) · UI: IBM Carbon Design System</div></main></body></html>
